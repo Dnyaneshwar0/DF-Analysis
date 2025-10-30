@@ -21,11 +21,13 @@ import numpy as np
 from PIL import Image
 import cv2
 
-# ---- model & artifact paths (adjusted to repo root: ../models/rafdb) ----
-MODEL_DIR = Path(__file__).resolve().parents[2] / "models" / "rafdb"
+# ---- model & artifact paths (adjusted to repo root) ----
+# backend/src/inference/emotion/rafdb/infer.py  → models/emotion/rafdb/
+MODEL_DIR = Path(__file__).resolve().parents[4] / "models" / "emotion" / "rafdb"
 ONNX_PATH = MODEL_DIR / "raf_model.onnx"
 TS_PATH = MODEL_DIR / "raf_model_ts.pt"
 LABEL_MAP = MODEL_DIR / "raf_label_map.json"
+
 
 # ---- try ONNXRuntime (CPU only) and silence its warnings/logs ----
 SESSION = None
