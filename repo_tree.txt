@@ -1,0 +1,70 @@
+.
+├── .gitignore
+├── README.md
+├── backend
+│   ├── data
+│   │   ├── annotations
+│   │   │   └── placeholder.txt
+│   │   ├── processed
+│   │   │   └── placeholder.txt
+│   │   └── raw
+│   │       └── placeholder.txt
+│   ├── models
+│   │   ├── attribution
+│   │   │   └── placeholder.txt
+│   │   ├── deepfake
+│   │   │   └── placeholder.txt
+│   │   └── emotion
+│   │       └── placeholder.txt
+│   ├── requirements.txt
+│   ├── signatures
+│   │   ├── db
+│   │   │   └── placeholder.txt
+│   │   └── tools
+│   │       └── placeholder.txt
+│   └── src
+│       ├── app.py
+│       ├── attribution
+│       │   └── placeholder.txt
+│       ├── detection
+│       │   └── placeholder.txt
+│       ├── emotion
+│       │   └── placeholder.txt
+│       ├── evaluation
+│       │   └── placeholder.txt
+│       ├── preprocessing
+│       │   └── placeholder.txt
+│       ├── reports
+│       │   └── placeholder.txt
+│       └── utils
+│           └── placeholder.txt
+├── frontend
+│   ├── package-lock.json
+│   ├── package.json
+│   ├── postcss.config.js
+│   ├── public
+│   │   └── index.html
+│   ├── src
+│   │   ├── App.js
+│   │   ├── components
+│   │   │   ├── DeepfakeCard.js
+│   │   │   ├── EmotionCard.js
+│   │   │   ├── ResultCard.js
+│   │   │   ├── ReverseEngCard.js
+│   │   │   └── Sidebar.js
+│   │   ├── index.css
+│   │   ├── index.js
+│   │   ├── mock
+│   │   │   └── mockData.js
+│   │   ├── pages
+│   │   │   ├── ProcessingPage.js
+│   │   │   ├── ResultsPage.js
+│   │   │   └── UploadPage.js
+│   │   └── services
+│   │       └── placeholder.txt
+│   └── tailwind.config.js
+├── repo_tree.txt
+└── tests
+    └── placeholder.txt
+
+29 directories, 39 files
