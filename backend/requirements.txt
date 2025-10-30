@@ -1,1 +1,6 @@
-Replace this file with backend Python dependencies. 
+flask
+flask-cors
+tensorflow
+mtcnn
+opencv-python-headless
+numpy
