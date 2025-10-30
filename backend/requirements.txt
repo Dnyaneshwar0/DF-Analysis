@@ -1,6 +1,10 @@
 flask
 flask-cors
-tensorflow
+tensorflow==2.19.0
 mtcnn
 opencv-python-headless
+<<<<<<< Updated upstream
 numpy
+=======
+numpy
+>>>>>>> Stashed changes
