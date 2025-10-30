@@ -1,0 +1,32 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 
+  Custom styles to enhance our cyber/media lab vibe,
+  e.g., subtle glow effects, scrollbar styles, etc.
+*/
+
+/* Glow effect for neon accents */
+.glow-indigo {
+  @apply text-indigo-400 drop-shadow-lg;
+}
+
+/* Scrollbar styling for dark theme */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #1e293b; /* slate-800 */
+}
+::-webkit-scrollbar-thumb {
+  background-color: #6366f1; /* indigo-500 */
+  border-radius: 10px;
+  border: 2px solid #1e293b;
+}
+
+/* Smooth scrolling for a nicer UX */
+html {
+  scroll-behavior: smooth;
+}
