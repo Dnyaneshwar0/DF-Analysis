@@ -8,8 +8,8 @@ warnings.filterwarnings("ignore", category=ImportWarning)
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 warnings.filterwarnings("ignore", message="Trying to unpickle estimator")
 
-ROOT = Path(__file__).resolve().parents[2]
-MODEL_DIR = ROOT / "models" / "goemotions_model"
+ROOT = Path(__file__).resolve().parents[3]
+MODEL_DIR = ROOT / "models"/ "emotion" / "goemotions_model"
 
 tfidf = joblib.load(MODEL_DIR / "goemotions_tfidf.joblib")
 clf   = joblib.load(MODEL_DIR / "goemotions_clf.joblib")
