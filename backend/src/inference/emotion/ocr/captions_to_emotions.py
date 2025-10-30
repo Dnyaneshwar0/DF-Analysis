@@ -1,95 +1,118 @@
 #!/usr/bin/env python3
 """
-captions_to_emotions.py
-Load segments JSON, run GoEmotions pipeline (joblib TF-IDF + classifier),
-and append emotion probabilities to each segment.
+backend/src/inference/emotion/ocr/captions_to_emotions.py
+
+Runs GoEmotions model on OCR-cleaned caption segments and generates emotion
+labels, probabilities, CSV summaries, and visualization plots.
+
+This version resolves the backend root by searching ancestors for a folder named 'backend',
+so it won't break depending on how you invoke the module.
 """
-import argparse, json
+
+import json
+import csv
+import sys
 from pathlib import Path
-import joblib, numpy as np
+import matplotlib.pyplot as plt
 
+from src.inference.emotion.goemotions.infer import GoEmotionsPipeline
 
-def load_goemotions_models(base="models/goemotions_model"):
-    vec = joblib.load(f"{base}/goemotions_tfidf.joblib")
-    clf = joblib.load(f"{base}/goemotions_clf.joblib")
-    try:
-        # Cast all labels to strings to avoid JSON key type issues
-        labels = [str(x) for x in list(clf.classes_)]
-    except Exception:
-        labels = None
-    return vec, clf, labels
+def find_backend_root() -> Path:
+    p = Path(__file__).resolve()
+    for a in p.parents:
+        if a.name == "backend":
+            return a
+    # fallback: go 4 levels up (best-effort)
+    return p.parents[4]
 
+BACKEND_DIR = find_backend_root()
 
-def predict_probs(clf, vec, texts):
-    X = vec.transform(texts)
-    # try predict_proba, if not available use decision_function or predict
-    if hasattr(clf, "predict_proba"):
-        probs = clf.predict_proba(X)
-        # shape (n_samples, n_classes)
-        return probs
-    elif hasattr(clf, "decision_function"):
-        df = clf.decision_function(X)
-        # attempt to convert to probabilities via softmax
-        from scipy.special import softmax
-        return softmax(df, axis=1)
-    else:
-        preds = clf.predict(X)
-        # map to sparse one-hot
-        out = []
-        for p in preds:
-            v = [1.0 if p == c else 0.0 for c in clf.classes_]
-            out.append(v)
-        return np.array(out)
-
+def resolve_input_path(inp: str) -> Path:
+    p = Path(inp)
+    if p.exists():
+        return p.resolve()
+    # try relative to backend root
+    p2 = (BACKEND_DIR / inp)
+    if p2.exists():
+        return p2.resolve()
+    # try in data/emotion/output/ocr/
+    p3 = BACKEND_DIR / "data" / "emotion" / "output" / "ocr" / Path(inp).name
+    if p3.exists():
+        return p3.resolve()
+    raise FileNotFoundError(f"Segments JSON not found (tried): {p}, {p2}, {p3}")
 
 def main():
-    p = argparse.ArgumentParser()
-    p.add_argument("segments_json")
-    p.add_argument("out_json")
-    args = p.parse_args()
+    if len(sys.argv) < 2:
+        print("Usage: python -m src.inference.emotion.ocr.captions_to_emotions <path/to/segments_clean.json>")
+        sys.exit(1)
 
-    segs = json.load(open(args.segments_json, encoding="utf8")).get("segments", [])
-    if not segs:
-        print("No segments found.")
-        return
+    inp_json = resolve_input_path(sys.argv[1])
+    print(f"Using segments JSON: {inp_json}")  # quick feedback for debugging
 
-    vec, clf, labels = load_goemotions_models()
-    texts = [s["text"] for s in segs]
-    probs = predict_probs(clf, vec, texts)
-    all_segments = []
+    video_name = inp_json.stem.replace("_segments_clean", "")
+    out_dir = BACKEND_DIR / "data" / "emotion" / "output" / "ocr"
+    out_dir.mkdir(parents=True, exist_ok=True)
 
-    for i, s in enumerate(segs):
-        prob_vec = probs[i].tolist()
-        # Map probabilities to label names
-        if labels:
-            em = {str(labels[j]): float(prob_vec[j]) for j in range(len(labels))}
-            dominant = str(labels[int(np.argmax(prob_vec))])
-        else:
-            em = {f"class_{j}": float(prob_vec[j]) for j in range(len(prob_vec))}
-            dominant = max(em, key=em.get)
+    out_json = out_dir / f"{video_name}_captions_emotions.json"
+    out_csv = out_dir / f"{video_name}_linewise_emotions.csv"
 
-        seg_out = dict(s)
-        seg_out["emotions"] = em
-        seg_out["dominant"] = dominant
-        all_segments.append(seg_out)
+    data = json.load(open(inp_json, encoding="utf8"))
+    segments = data.get("segments", [])
+    texts = [seg["text"] for seg in segments]
+    print(f"Loaded {len(texts)} caption segments for emotion analysis.")
 
-    out = {"source": "ocr_captions", "segments": all_segments}
+    emo_model = GoEmotionsPipeline()
+    results = emo_model.predict_batch(texts)
 
-    # --- JSON dump with numpy-safe serialization ---
-    Path(args.out_json).parent.mkdir(parents=True, exist_ok=True)
+    for seg, res in zip(segments, results):
+        seg.update({
+            "labels": res.get("labels", []),
+            "probs": res.get("probs", {})
+        })
 
-    def safe_json(o):
-        if isinstance(o, (np.floating, np.float32, np.float64)):
-            return float(o)
-        if isinstance(o, (np.integer, np.int32, np.int64)):
-            return int(o)
-        return str(o)
+    with open(out_json, "w", encoding="utf8") as f:
+        json.dump({"video": video_name, "segments": segments}, f, indent=2, ensure_ascii=False)
 
-    with open(args.out_json, "w", encoding="utf8") as f:
-        json.dump(out, f, indent=2, ensure_ascii=False, default=safe_json)
+    with open(out_csv, "w", newline="", encoding="utf8") as cf:
+        writer = csv.writer(cf)
+        writer.writerow(["start", "end", "text", "labels"])
+        for seg in segments:
+            writer.writerow([seg.get("start"), seg.get("end"), seg.get("text"), ",".join(seg.get("labels", []))])
 
-    print("Wrote", args.out_json)
+    print(f"✅ Wrote {out_json}")
+    print(f"✅ Wrote {out_csv}")
 
+    top_labels = [seg.get("labels", ["none"])[0] for seg in segments]
+    timeline = [seg.get("end", 0.0) for seg in segments]
+    unique_labels = sorted(set(top_labels))
+
+    if unique_labels:
+        plt.figure(figsize=(10, 3))
+        plt.plot(timeline, [unique_labels.index(l) for l in top_labels], "o-", alpha=0.7)
+        plt.yticks(range(len(unique_labels)), unique_labels)
+        plt.xlabel("Time (s)")
+        plt.title(f"Dominant Emotion Timeline — {video_name}")
+        plt.tight_layout()
+        plt.savefig(out_dir / f"linewise_dominant_timeline.png", dpi=150)
+        plt.close()
+
+        # Top-3 emotion distribution (counts of top labels)
+        label_counts = {}
+        for lbl in top_labels:
+            label_counts[lbl] = label_counts.get(lbl, 0) + 1
+        labels, counts = zip(*sorted(label_counts.items(), key=lambda x: x[1], reverse=True))
+        plt.figure(figsize=(8, 4))
+        plt.bar(labels, counts)
+        plt.xticks(rotation=30, ha="right")
+        plt.ylabel("Frequency")
+        plt.title(f"Top Emotion Distribution — {video_name}")
+        plt.tight_layout()
+        plt.savefig(out_dir / f"linewise_top3_stacked.png", dpi=150)
+        plt.close()
+
+        print("✅ Plots saved to:", out_dir)
+    else:
+        print("No labels found — skipping plots.")
 
 if __name__ == "__main__":
     main()

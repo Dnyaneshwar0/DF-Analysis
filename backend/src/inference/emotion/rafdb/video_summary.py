@@ -1,9 +1,9 @@
-# src/rafdb/video_summary.py
+# src/inference/emotion/rafdb/video_summary.py
 """
 Video summary tool for RAF-DB model.
-- Reuses src.rafdb.infer.predict_frame_bgr for per-frame emotion probs.
-- Writes: out_<videoname>.mp4 (annotated), per_frame_probs_<videoname>.csv, summary_<videoname>.png
-- Prints one-line summary: predominant emotion and average probability.
+- Reuses src.inference.emotion.rafdb.infer.predict_frame_bgr for per-frame emotion probs.
+- Writes artifacts into backend/data/emotion/output/.
+- Outputs: annotated video, per-frame CSV, summary PNG, and one-line summary.
 """
 
 import os
@@ -18,12 +18,15 @@ from collections import deque
 import numpy as np
 import cv2
 from PIL import Image
-
-# plotting
 import matplotlib.pyplot as plt
 
-# import your inference helper (must be reachable as module)
-from src.rafdb.infer import predict_frame_bgr, idx2label, predict_image
+# repo-root and output directory (file path: backend/src/inference/emotion/rafdb/video_summary.py)
+REPO_ROOT = Path(__file__).resolve().parents[4]  # backend/
+OUT_DIR = REPO_ROOT / "data" / "emotion" / "output"
+OUT_DIR.mkdir(parents=True, exist_ok=True)
+
+# import inference helper (module path matches repo layout)
+from src.inference.emotion.rafdb.infer import predict_frame_bgr, idx2label, predict_image
 
 # Build canonical COMMON label list from idx2label mapping (ensures consistent ordering)
 COMMON = [idx2label[i] for i in sorted(idx2label.keys())]
@@ -44,10 +47,11 @@ def extract_face_box_from_predict(frame, predict_fn):
     This function returns (box, idx, label, probs) where box is [x1,y1,x2,y2] or None.
     """
     try:
+        # predict_frame_bgr returns (idx, label, prob_dict)
         idx, label, probs = predict_fn(frame)
         if idx == -1:
             return None, idx, label, probs
-        # use Haar to get simple box for overlay
+        # fallback overlay box using Haar cascade
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
         faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5)
@@ -66,9 +70,11 @@ def run_and_summarize(input_path, output_path=None, frame_skip=1, smooth_k=7, co
     w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     video_name = Path(input_path).name
-    out_path = output_path or ("out_" + video_name)
+
+    out_video_name = output_path.name if output_path is not None else f"out_{video_name}"
+    out_video_path = OUT_DIR / out_video_name
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-    writer = cv2.VideoWriter(out_path, fourcc, fps, (w,h))
+    writer = cv2.VideoWriter(str(out_video_path), fourcc, fps, (w,h))
 
     frame_idx = 0
     probs_buf = deque(maxlen=smooth_k)
@@ -111,8 +117,8 @@ def run_and_summarize(input_path, output_path=None, frame_skip=1, smooth_k=7, co
     cap.release()
     writer.release()
 
-    # write CSV
-    csv_path = Path(f"per_frame_probs_{video_name}.csv")
+    # write CSV into OUT_DIR
+    csv_path = OUT_DIR / f"per_frame_probs_{video_name}.csv"
     header = ["frame_idx", "has_face"] + COMMON
     with open(csv_path, "w", newline="") as cf:
         writer_csv = csv.writer(cf)
@@ -126,8 +132,8 @@ def run_and_summarize(input_path, output_path=None, frame_skip=1, smooth_k=7, co
     else:
         avg = arr.mean(axis=0)
 
-    # save summary bar chart
-    summary_png = Path(f"summary_{video_name}.png")
+    # save summary bar chart to OUT_DIR
+    summary_png = OUT_DIR / f"summary_{video_name}.png"
     plt.figure(figsize=(8,4))
     ax = plt.gca()
     x = np.arange(len(COMMON))
@@ -150,7 +156,7 @@ def run_and_summarize(input_path, output_path=None, frame_skip=1, smooth_k=7, co
     print(one_liner)
 
     return {
-        "out_video": out_path,
+        "out_video": str(out_video_path),
         "csv": str(csv_path),
         "summary_png": str(summary_png),
         "one_liner": one_liner
@@ -158,8 +164,16 @@ def run_and_summarize(input_path, output_path=None, frame_skip=1, smooth_k=7, co
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: python -m src.rafdb.video_summary path/to/video.mp4")
+        print("Usage: python -m src.inference.emotion.rafdb.video_summary path/to/video.mp4")
         sys.exit(1)
     inp = sys.argv[1]
-    res = run_and_summarize(inp)
+    p = Path(inp)
+    if not p.exists():
+        # resolve repo-root relative
+        p_repo = REPO_ROOT / inp
+        if p_repo.exists():
+            p = p_repo
+        else:
+            raise FileNotFoundError(f"Input not found: {inp}")
+    res = run_and_summarize(p)
     print("Artifacts written:", res)

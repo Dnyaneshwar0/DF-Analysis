@@ -1,9 +1,0 @@
-start,end,duration,dominant,top1,top1_prob,top2,top2_prob,top3,top3_prob,text
-0.0,1.5,1.5,neutral,neutral,0.3349,admiration,0.1108,gratitude,0.0623,i'm proud to declare
-2.0,2.0,0.0,love,love,0.5355,neutral,0.1209,admiration,0.0872,ii l love mathematics
-2.5,2.5,0.0,love,love,0.5355,neutral,0.1209,admiration,0.0872,iy 0  l love mathematics!  mae
-3.0,3.0,0.0,love,love,0.25,neutral,0.1284,admiration,0.0767,my i   l love mathematics!  l an
-3.5,4.0,0.5,love,love,0.5355,neutral,0.1209,admiration,0.0872,l love mathematics!  r ff
-4.5,4.5,0.0,neutral,neutral,0.2954,admiration,0.0753,annoyance,0.0745,a   jum   a   applause    me 7 2.   bh ses a nthe   nes? y a
-5.0,5.0,0.0,neutral,neutral,0.4052,admiration,0.1131,annoyance,0.0864,"se     fa i '4 eee l re,  cheers   applause  he"
-5.5,5.5,0.0,neutral,neutral,0.3486,admiration,0.1049,annoyance,0.0579,a   applause
