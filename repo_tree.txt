@@ -1,0 +1,144 @@
+.
+├── README.md
+├── backend
+│   ├── data
+│   │   ├── detection
+│   │   │   ├── manip.mp4
+│   │   │   └── orig.mp4
+│   │   └── emotion
+│   │       ├── input
+│   │       │   ├── eddie.mp4
+│   │       │   ├── eddie.wav
+│   │       │   ├── eddieaudio.mp4
+│   │       │   ├── eddiecaptions.mp4
+│   │       │   └── happy.jpg
+│   │       └── output
+│   │           └── ocr
+│   │               ├── eddiecaptions_all_captions.txt
+│   │               ├── eddiecaptions_captions_emotions.json
+│   │               ├── eddiecaptions_captions_emotions_labeled.json
+│   │               ├── eddiecaptions_linewise_emotions.csv
+│   │               ├── eddiecaptions_linewise_emotions.json
+│   │               ├── eddiecaptions_linewise_emotions_labeled.csv
+│   │               ├── eddiecaptions_raw_captions.json
+│   │               ├── eddiecaptions_segments.json
+│   │               ├── eddiecaptions_segments_clean.json
+│   │               ├── linewise_dominant_timeline.png
+│   │               └── linewise_top3_stacked.png
+│   ├── models
+│   │   ├── attribution
+│   │   │   └── placeholder.txt
+│   │   ├── deepfake
+│   │   │   └── df_detect.keras
+│   │   └── emotion
+│   │       ├── goemotions_model
+│   │       │   ├── goemotions_clf.joblib
+│   │       │   ├── goemotions_per_label_thresholds.npy
+│   │       │   ├── goemotions_tfidf.joblib
+│   │       │   ├── goemotions_tfidf_baseline.joblib
+│   │       │   ├── goemotions_tfidf_pipeline2.joblib
+│   │       │   └── labels.txt
+│   │       ├── rafdb
+│   │       │   ├── raf_best.pth
+│   │       │   ├── raf_confusion_matrix.png
+│   │       │   ├── raf_final_state_dict.pth
+│   │       │   ├── raf_label_map.json
+│   │       │   ├── raf_model.onnx
+│   │       │   ├── raf_model.onnx:Zone.Identifier
+│   │       │   ├── raf_model_dynamic_quant.pth
+│   │       │   └── raf_model_ts.pt
+│   │       └── ravdess
+│   │           ├── confusion_matrix_final.png
+│   │           ├── simple_audio_cnn.py
+│   │           └── simple_audio_cnn_aug2_state_dict.pt
+│   ├── notebooks
+│   │   └── emotion
+│   │       ├── goemotions.ipynb
+│   │       ├── rafdb-emo-manip.ipynb
+│   │       └── ravdess-cremad.ipynb
+│   ├── requirements.txt
+│   ├── signatures
+│   │   ├── db
+│   │   │   └── placeholder.txt
+│   │   └── tools
+│   │       └── placeholder.txt
+│   └── src
+│       ├── __init__.py
+│       ├── app.py
+│       ├── inference
+│       │   └── emotion
+│       │       ├── goemotions
+│       │       │   ├── __init__.py
+│       │       │   └── infer.py
+│       │       ├── ocr
+│       │       │   ├── README.md
+│       │       │   ├── captions_to_emotions.py
+│       │       │   ├── extract_frames.sh
+│       │       │   ├── frames
+│       │       │   │   └── eddiecaptions
+│       │       │   │       ├── frame_00001.jpg
+│       │       │   │       ├── frame_00002.jpg
+│       │       │   │       ├── frame_00003.jpg
+│       │       │   │       ├── frame_00004.jpg
+│       │       │   │       ├── frame_00005.jpg
+│       │       │   │       ├── frame_00006.jpg
+│       │       │   │       ├── frame_00007.jpg
+│       │       │   │       ├── frame_00008.jpg
+│       │       │   │       ├── frame_00009.jpg
+│       │       │   │       ├── frame_00010.jpg
+│       │       │   │       ├── frame_00011.jpg
+│       │       │   │       └── frame_00012.jpg
+│       │       │   ├── ocr_batch.py
+│       │       │   ├── ocr_frame.py
+│       │       │   ├── output
+│       │       │   └── postprocess_captions.py
+│       │       ├── rafdb
+│       │       │   ├── infer.py
+│       │       │   ├── video_infer.py
+│       │       │   └── video_summary.py
+│       │       ├── ravdess
+│       │       │   └── infer.py
+│       │       └── utils
+│       │           ├── create_ocr_pipeline.sh
+│       │           ├── linewise_emotions.py
+│       │           └── plot_linewise_emotions.py
+│       ├── routes
+│       │   ├── __init__.py
+│       │   ├── deepfake_routes.py
+│       │   ├── emotion_routes.py
+│       │   └── reverse_routes.py
+│       └── utils
+│           ├── __init__.py
+│           ├── postprocessing.py
+│           └── preprocessing.py
+├── frontend
+│   ├── package-lock.json
+│   ├── package.json
+│   ├── postcss.config.js
+│   ├── public
+│   │   └── index.html
+│   ├── src
+│   │   ├── App.js
+│   │   ├── components
+│   │   │   ├── DeepfakeCard.js
+│   │   │   ├── EmotionCard.js
+│   │   │   ├── ResultCard.js
+│   │   │   ├── ReverseEngCard.js
+│   │   │   └── Sidebar.js
+│   │   ├── index.css
+│   │   ├── index.js
+│   │   ├── mock
+│   │   │   └── mockData.js
+│   │   ├── pages
+│   │   │   ├── ProcessingPage.js
+│   │   │   ├── ResultsPage.js
+│   │   │   └── UploadPage.js
+│   │   └── services
+│   │       └── placeholder.txt
+│   └── tailwind.config.js
+├── repo_tree.txt
+└── tests
+    ├── placeholder.txt
+    └── temp.py
+
+41 directories, 101 files

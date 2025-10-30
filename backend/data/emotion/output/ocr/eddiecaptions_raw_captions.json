@@ -1,0 +1,78 @@
+{
+  "frames": [
+    {
+      "image": "/home/ampm/projects/DF-Analysis/backend/src/inference/emotion/ocr/frames/eddiecaptions/frame_00001.jpg",
+      "text": "I'm proud to declare,",
+      "conf": null,
+      "timestamp": 0.0
+    },
+    {
+      "image": "/home/ampm/projects/DF-Analysis/backend/src/inference/emotion/ocr/frames/eddiecaptions/frame_00002.jpg",
+      "text": "I'm proud to declare,\n\n”",
+      "conf": null,
+      "timestamp": 0.5
+    },
+    {
+      "image": "/home/ampm/projects/DF-Analysis/backend/src/inference/emotion/ocr/frames/eddiecaptions/frame_00003.jpg",
+      "text": "I'm proud to declare,\n\n”",
+      "conf": null,
+      "timestamp": 1.0
+    },
+    {
+      "image": "/home/ampm/projects/DF-Analysis/backend/src/inference/emotion/ocr/frames/eddiecaptions/frame_00004.jpg",
+      "text": "I'm proud to declare,\n\n”",
+      "conf": null,
+      "timestamp": 1.5
+    },
+    {
+      "image": "/home/ampm/projects/DF-Analysis/backend/src/inference/emotion/ocr/frames/eddiecaptions/frame_00005.jpg",
+      "text": "\"| love mathematics!\"",
+      "conf": null,
+      "timestamp": 2.0
+    },
+    {
+      "image": "/home/ampm/projects/DF-Analysis/backend/src/inference/emotion/ocr/frames/eddiecaptions/frame_00006.jpg",
+      "text": "y\n\"| love mathematics!\"\n| 7",
+      "conf": null,
+      "timestamp": 2.5
+    },
+    {
+      "image": "/home/ampm/projects/DF-Analysis/backend/src/inference/emotion/ocr/frames/eddiecaptions/frame_00007.jpg",
+      "text": "\"| love mathematics!\"\n| wo",
+      "conf": null,
+      "timestamp": 3.0
+    },
+    {
+      "image": "/home/ampm/projects/DF-Analysis/backend/src/inference/emotion/ocr/frames/eddiecaptions/frame_00008.jpg",
+      "text": "\"| love mathematics!\"\n) 2a",
+      "conf": null,
+      "timestamp": 3.5
+    },
+    {
+      "image": "/home/ampm/projects/DF-Analysis/backend/src/inference/emotion/ocr/frames/eddiecaptions/frame_00009.jpg",
+      "text": "\"| love mathematics!\"\ni we",
+      "conf": null,
+      "timestamp": 4.0
+    },
+    {
+      "image": "/home/ampm/projects/DF-Analysis/backend/src/inference/emotion/ocr/frames/eddiecaptions/frame_00010.jpg",
+      "text": "wa Ss |\n“Re, (Cheers) (Applause) » ’",
+      "conf": null,
+      "timestamp": 4.5
+    },
+    {
+      "image": "/home/ampm/projects/DF-Analysis/backend/src/inference/emotion/ocr/frames/eddiecaptions/frame_00011.jpg",
+      "text": "“Re, (Cheers) (Applause) z ee !",
+      "conf": null,
+      "timestamp": 5.0
+    },
+    {
+      "image": "/home/ampm/projects/DF-Analysis/backend/src/inference/emotion/ocr/frames/eddiecaptions/frame_00012.jpg",
+      "text": "‘Wl, (Cheers) (Applause) »",
+      "conf": null,
+      "timestamp": 5.5
+    }
+  ],
+  "interval": 0.5,
+  "source_dir": "/home/ampm/projects/DF-Analysis/backend/src/inference/emotion/ocr/frames/eddiecaptions"
+}

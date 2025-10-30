@@ -1,0 +1,14 @@
+{
+    "file": "data/emotion/input/eddie.wav",
+    "predicted_emotion": "surprised",
+    "probabilities": {
+        "neutral": 0.014291934669017792,
+        "calm": 0.01929405704140663,
+        "happy": 0.010348665527999401,
+        "sad": 0.12933899462223053,
+        "angry": 0.08868180215358734,
+        "fearful": 0.3160565495491028,
+        "disgust": 0.07869946211576462,
+        "surprised": 0.3432886004447937
+    }
+}

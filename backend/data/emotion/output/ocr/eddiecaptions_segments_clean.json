@@ -1,0 +1,35 @@
+{
+  "video": "eddiecaptions",
+  "segments": [
+    {
+      "text": "i'm proud to declare,",
+      "start": 0.0,
+      "end": 1.5,
+      "conf": 0.0
+    },
+    {
+      "text": "\"| love mathematics!\"",
+      "start": 2.0,
+      "end": 4.0,
+      "conf": 0.0
+    },
+    {
+      "text": "wa ss | “re, (cheers) (applause) » ’",
+      "start": 4.5,
+      "end": 4.5,
+      "conf": 0.0
+    },
+    {
+      "text": "“re, (cheers) (applause) z ee !",
+      "start": 5.0,
+      "end": 5.0,
+      "conf": 0.0
+    },
+    {
+      "text": "‘wl, (cheers) (applause) »",
+      "start": 5.5,
+      "end": 5.5,
+      "conf": 0.0
+    }
+  ]
+}
