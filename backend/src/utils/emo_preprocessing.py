@@ -1,14 +1,5 @@
 #!/usr/bin/env python3
-"""
-emo_preprocessing.py
-
-Unified preprocessing pipeline for emotion analysis:
-- Extracts frames from videos and runs OCR on captions (burned-in text)
-- Extracts audio from MP4 videos and generates Mel-spectrograms for RAVDESS
-- Supports both individual and batch (--all) processing
-- Writes processed outputs to:
-    data/emotion/input/processed/
-"""
+# Unified preprocessing pipeline for emotion analysis
 
 from __future__ import annotations
 import argparse
@@ -27,23 +18,17 @@ try:
 except Exception as e:
     raise SystemExit("Pillow is required (pip install pillow).") from e
 
-# === Path setup ===
+# Paths
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_INPUT_DIR = REPO_ROOT / "data" / "emotion" / "input" / "raw"
 DEFAULT_PROCESSED_DIR = REPO_ROOT / "data" / "emotion" / "input" / "processed"
 DEFAULT_TMP_ROOT = DEFAULT_PROCESSED_DIR / "tmp"
 
-# ===============================================================
-# === UTILS =====================================================
-# ===============================================================
-
+# Utils
 def run_cmd_quiet(cmd: List[str]):
     subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-# ===============================================================
-# === OCR HELPERS ===============================================
-# ===============================================================
-
+# OCR helpers
 def try_pytesseract(img: Image.Image) -> Optional[Dict]:
     try:
         import pytesseract
@@ -54,7 +39,6 @@ def try_pytesseract(img: Image.Image) -> Optional[Dict]:
         return {"text": txt, "conf": None if not txt else 1.0}
     except Exception:
         return {"text": "", "conf": 0.0}
-
 
 def try_easyocr(img: Image.Image) -> Optional[Dict]:
     try:
@@ -69,7 +53,7 @@ def try_easyocr(img: Image.Image) -> Optional[Dict]:
     combined = " ".join(texts).strip()
     return {"text": combined, "conf": float(sum(confs) / len(confs)) if confs else 0.0}
 
-
+# Text cleaning and similarity
 TIMESTAMP_BRACKET_RE = re.compile(r"\[[^\]]*\]|\([0-9]{1,2}:[0-9]{2}(?::[0-9]{2})?\)")
 NON_PRINT_RE = re.compile(r"[^A-Za-z0-9.,!?;:'\"()\s-]")
 MULTISPACE_RE = re.compile(r"\s+")
@@ -85,7 +69,7 @@ def similarity_ratio(a: str, b: str) -> float:
 def similar_enough(a: str, b: str, cutoff: float = 0.85) -> bool:
     return similarity_ratio(a, b) > cutoff
 
-
+# Frame result dataclass
 @dataclass
 class FrameResult:
     image: str
@@ -94,7 +78,7 @@ class FrameResult:
     text: str
     conf: float
 
-
+# Frame extraction
 def extract_frames_ffmpeg(video_path: Path, out_dir: Path, interval: float = 0.5, scale_h: int = 720):
     out_dir.mkdir(parents=True, exist_ok=True)
     fps = 1.0 / float(interval)
@@ -102,7 +86,7 @@ def extract_frames_ffmpeg(video_path: Path, out_dir: Path, interval: float = 0.5
     cmd = ["ffmpeg", "-y", "-i", str(video_path), "-vf", vf, str(out_dir / "frame_%05d.jpg")]
     run_cmd_quiet(cmd)
 
-
+# Frame OCR
 def process_frames_dir(frames_dir: Path, interval: float, crop: float, min_len: int, engine_order: List[str]) -> List[FrameResult]:
     frames = sorted(frames_dir.glob("*.jpg"))
     results = []
@@ -132,7 +116,7 @@ def process_frames_dir(frames_dir: Path, interval: float, crop: float, min_len: 
         results.append(FrameResult(str(fp), ts, text, cleaned, float(conf)))
     return results
 
-
+# Merge captions
 def merge_frame_results(frames: List[FrameResult], sim_cutoff: float = 0.85, merge_gap: float = 0.25):
     segments, cur = [], None
     for fr in frames:
@@ -157,10 +141,7 @@ def merge_frame_results(frames: List[FrameResult], sim_cutoff: float = 0.85, mer
             merged.append(seg)
     return merged
 
-# ===============================================================
-# === AUDIO EXTRACTION + RAVDESS PREPROCESSING ==================
-# ===============================================================
-
+# Audio extraction
 def extract_audio_ffmpeg(video_path: Path, out_wav: Path, target_sr: int = 16000):
     cmd = [
         "ffmpeg", "-y", "-i", str(video_path),
@@ -169,7 +150,7 @@ def extract_audio_ffmpeg(video_path: Path, out_wav: Path, target_sr: int = 16000
     ]
     run_cmd_quiet(cmd)
 
-
+# RAVDESS preprocessing
 def preprocess_ravdess_audio(audio_path: Path, out_dir: Path, target_sr: int = 16000, n_mels: int = 64):
     import torch, torchaudio, librosa, numpy as np
     waveform, _ = librosa.load(audio_path, sr=target_sr, mono=True)
@@ -177,10 +158,7 @@ def preprocess_ravdess_audio(audio_path: Path, out_dir: Path, target_sr: int = 1
     mel = (mel - mel.mean()) / mel.std()
     np.save(out_dir / f"{audio_path.stem}_mel.npy", mel.squeeze().cpu().numpy())
 
-# ===============================================================
-# === ALL-IN-ONE PIPELINE ======================================
-# ===============================================================
-
+# Batch run
 def run_all_preprocessings():
     raw_dir, out_dir = DEFAULT_INPUT_DIR, DEFAULT_PROCESSED_DIR
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -194,7 +172,6 @@ def run_all_preprocessings():
             segs = merge_frame_results(frames)
             with open(out_dir / f"{mp4.stem}_captions.json", "w") as f:
                 json.dump({"video": mp4.stem, "segments": segs}, f, ensure_ascii=False, indent=2)
-
             wav_path = out_dir / f"{mp4.stem}.wav"
             extract_audio_ffmpeg(mp4, wav_path)
             preprocess_ravdess_audio(wav_path, out_dir)
@@ -202,10 +179,7 @@ def run_all_preprocessings():
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
 
-# ===============================================================
-# === CLI ENTRY ================================================
-# ===============================================================
-
+# CLI
 def main(argv=None):
     p = argparse.ArgumentParser(description="Unified OCR + RAVDESS preprocessing pipeline.")
     p.add_argument("--video", help="Path to MP4 video for OCR/audio preprocessing.")
@@ -237,7 +211,6 @@ def main(argv=None):
             segs = merge_frame_results(frames)
             with open(out_dir / f"{video_path.stem}_captions.json", "w") as f:
                 json.dump({"video": video_path.stem, "segments": segs}, f, ensure_ascii=False, indent=2)
-
             wav_path = out_dir / f"{video_path.stem}.wav"
             extract_audio_ffmpeg(video_path, wav_path)
             preprocess_ravdess_audio(wav_path, out_dir)
@@ -255,7 +228,6 @@ def main(argv=None):
             audio_path = alt
         preprocess_ravdess_audio(audio_path, out_dir)
         return
-
 
 if __name__ == "__main__":
     main()
