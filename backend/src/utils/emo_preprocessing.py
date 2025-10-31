@@ -2,16 +2,12 @@
 """
 emo_preprocessing.py
 
-Single-file OCR preprocessing:
- - Extract frames from an input MP4 (ffmpeg)
- - Run per-frame OCR (pytesseract primary, easyocr fallback)
- - Merge & clean OCR results into unique caption segments
- - Write ONE final JSON:
-     data/emotion/processed/<video_basename>_captions.json
-
-Temporary frames are stored in:
-  data/emotion/processed/tmp/<video_basename>/
-and are deleted automatically at the end (no raw JSONs, no plots).
+Unified preprocessing pipeline for emotion analysis:
+- Extracts frames from videos and runs OCR on captions (burned-in text)
+- Extracts audio from MP4 videos and generates Mel-spectrograms for RAVDESS
+- Supports both individual and batch (--all) processing
+- Writes processed outputs to:
+    data/emotion/input/processed/
 """
 
 from __future__ import annotations
@@ -31,18 +27,22 @@ try:
 except Exception as e:
     raise SystemExit("Pillow is required (pip install pillow).") from e
 
+# === Path setup ===
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_INPUT_DIR = REPO_ROOT / "data" / "emotion" / "input" / "raw"
 DEFAULT_PROCESSED_DIR = REPO_ROOT / "data" / "emotion" / "input" / "processed"
 DEFAULT_TMP_ROOT = DEFAULT_PROCESSED_DIR / "tmp"
 
+# ===============================================================
+# === UTILS =====================================================
+# ===============================================================
 
 def run_cmd_quiet(cmd: List[str]):
-    proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    if proc.returncode != 0:
-        raise RuntimeError(f"Command failed: {' '.join(cmd)}\n{proc.stderr.strip()}")
-    return proc.stdout
+    subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
+# ===============================================================
+# === OCR HELPERS ===============================================
+# ===============================================================
 
 def try_pytesseract(img: Image.Image) -> Optional[Dict]:
     try:
@@ -50,52 +50,39 @@ def try_pytesseract(img: Image.Image) -> Optional[Dict]:
     except Exception:
         return None
     try:
-        txt = pytesseract.image_to_string(img, lang="eng")
-        txt = txt.strip()
-        if not txt:
-            return {"text": "", "conf": 0.0}
-        return {"text": txt, "conf": None}
+        txt = pytesseract.image_to_string(img, lang="eng").strip()
+        return {"text": txt, "conf": None if not txt else 1.0}
     except Exception:
         return {"text": "", "conf": 0.0}
 
 
 def try_easyocr(img: Image.Image) -> Optional[Dict]:
     try:
-        import easyocr
-        import numpy as np
+        import easyocr, numpy as np
     except Exception:
         return None
     reader = easyocr.Reader(["en"], gpu=False)
     res = reader.readtext(np.array(img))
     if not res:
         return {"text": "", "conf": 0.0}
-    texts, confs = [], []
-    for _, text, conf in res:
-        texts.append(text)
-        confs.append(conf)
+    texts, confs = zip(*[(t, c) for _, t, c in res])
     combined = " ".join(texts).strip()
-    avg_conf = float(sum(confs) / len(confs)) if confs else 0.0
-    return {"text": combined, "conf": avg_conf}
+    return {"text": combined, "conf": float(sum(confs) / len(confs)) if confs else 0.0}
 
 
 TIMESTAMP_BRACKET_RE = re.compile(r"\[[^\]]*\]|\([0-9]{1,2}:[0-9]{2}(?::[0-9]{2})?\)")
 NON_PRINT_RE = re.compile(r"[^A-Za-z0-9.,!?;:'\"()\s-]")
 MULTISPACE_RE = re.compile(r"\s+")
 
-
 def normalize_text(s: str) -> str:
     return " ".join(s.strip().split()).lower()
-
 
 def similarity_ratio(a: str, b: str) -> float:
     if not a or not b:
         return 0.0
     return SequenceMatcher(None, a, b).ratio()
 
-
 def similar_enough(a: str, b: str, cutoff: float = 0.85) -> bool:
-    if not a or not b:
-        return False
     return similarity_ratio(a, b) > cutoff
 
 
@@ -108,81 +95,59 @@ class FrameResult:
     conf: float
 
 
-def extract_frames_ffmpeg(video_path: Path, out_dir: Path, interval: float = 0.5, scale_h: Optional[int] = 720):
+def extract_frames_ffmpeg(video_path: Path, out_dir: Path, interval: float = 0.5, scale_h: int = 720):
     out_dir.mkdir(parents=True, exist_ok=True)
-    if not video_path.exists():
-        raise FileNotFoundError(f"Video not found: {video_path}")
     fps = 1.0 / float(interval)
-    scale = f"scale=-2:{scale_h}" if scale_h else "null"
-    vf = f"{scale},fps={fps}"
+    vf = f"scale=-2:{scale_h},fps={fps}"
     cmd = ["ffmpeg", "-y", "-i", str(video_path), "-vf", vf, str(out_dir / "frame_%05d.jpg")]
-    try:
-        subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    except subprocess.CalledProcessError as e:
-        proc = subprocess.run(cmd, capture_output=True, text=True)
-        raise RuntimeError(f"ffmpeg failed:\n{proc.stderr.strip()}") from e
+    run_cmd_quiet(cmd)
 
 
 def process_frames_dir(frames_dir: Path, interval: float, crop: float, min_len: int, engine_order: List[str]) -> List[FrameResult]:
-    frames = sorted([p for p in frames_dir.glob("*.jpg")])
-    results: List[FrameResult] = []
+    frames = sorted(frames_dir.glob("*.jpg"))
+    results = []
     for idx, fp in enumerate(frames):
         ts = round(idx * interval, 3)
         try:
             im = Image.open(fp).convert("RGB")
         except Exception:
-            results.append(FrameResult(image=str(fp), timestamp=ts, raw_text="", text="", conf=0.0))
+            results.append(FrameResult(str(fp), ts, "", "", 0.0))
             continue
+
         w, h = im.size
         top = int(h * (1.0 - crop))
         crop_img = im.crop((0, top, w, h))
-        crop_img = ImageOps.autocontrast(crop_img)
-        crop_img = ImageOps.grayscale(crop_img)
-        crop_img = ImageOps.invert(crop_img)
+        crop_img = ImageOps.invert(ImageOps.grayscale(ImageOps.autocontrast(crop_img)))
 
-        text = ""
-        conf = 0.0
+        text, conf = "", 0.0
         for eng in engine_order:
-            if eng == "tesseract":
-                out = try_pytesseract(crop_img)
-            elif eng == "easyocr":
-                out = try_easyocr(crop_img)
-            else:
-                continue
+            out = try_pytesseract(crop_img) if eng == "tesseract" else try_easyocr(crop_img)
             if out and out.get("text", "").strip():
-                text = out["text"].strip()
-                conf = out.get("conf", 0.0) or 0.0
+                text, conf = out["text"].strip(), out.get("conf", 0.0)
                 break
 
-        cleaned = TIMESTAMP_BRACKET_RE.sub("", text)
-        cleaned = NON_PRINT_RE.sub("", cleaned)
-        cleaned = MULTISPACE_RE.sub(" ", cleaned).strip().lower()
+        cleaned = MULTISPACE_RE.sub(" ", NON_PRINT_RE.sub("", TIMESTAMP_BRACKET_RE.sub("", text))).strip().lower()
         if len(cleaned) < min_len:
             cleaned = ""
-
-        results.append(FrameResult(image=str(fp), timestamp=ts, raw_text=text, text=cleaned, conf=float(conf)))
+        results.append(FrameResult(str(fp), ts, text, cleaned, float(conf)))
     return results
 
 
 def merge_frame_results(frames: List[FrameResult], sim_cutoff: float = 0.85, merge_gap: float = 0.25):
-    segments = []
-    cur = None
+    segments, cur = [], None
     for fr in frames:
-        txt = fr.text
-        ts = fr.timestamp
-        if cur is None:
-            if txt:
-                cur = {"text": txt, "start": ts, "end": ts, "conf": fr.conf}
+        txt, ts = fr.text, fr.timestamp
+        if not txt:
+            continue
+        if cur and (txt == cur["text"] or similar_enough(txt, cur["text"], sim_cutoff)):
+            cur["end"] = ts
+            cur["conf"] = (cur["conf"] + fr.conf) / 2.0
         else:
-            if txt == cur["text"] or similar_enough(txt, cur["text"], cutoff=sim_cutoff):
-                cur["end"] = ts
-                cur["conf"] = (cur.get("conf", 0.0) + fr.conf) / 2.0
-            else:
+            if cur:
                 segments.append(cur)
-                cur = {"text": txt, "start": ts, "end": ts, "conf": fr.conf} if txt else None
+            cur = {"text": txt, "start": ts, "end": ts, "conf": fr.conf}
     if cur:
         segments.append(cur)
-
     merged = []
     for seg in segments:
         if merged and seg["text"] == merged[-1]["text"] and seg["start"] - merged[-1]["end"] <= merge_gap:
@@ -192,72 +157,104 @@ def merge_frame_results(frames: List[FrameResult], sim_cutoff: float = 0.85, mer
             merged.append(seg)
     return merged
 
+# ===============================================================
+# === AUDIO EXTRACTION + RAVDESS PREPROCESSING ==================
+# ===============================================================
+
+def extract_audio_ffmpeg(video_path: Path, out_wav: Path, target_sr: int = 16000):
+    cmd = [
+        "ffmpeg", "-y", "-i", str(video_path),
+        "-vn", "-acodec", "pcm_s16le", "-ar", str(target_sr), "-ac", "1",
+        str(out_wav)
+    ]
+    run_cmd_quiet(cmd)
+
+
+def preprocess_ravdess_audio(audio_path: Path, out_dir: Path, target_sr: int = 16000, n_mels: int = 64):
+    import torch, torchaudio, librosa, numpy as np
+    waveform, _ = librosa.load(audio_path, sr=target_sr, mono=True)
+    mel = torchaudio.transforms.MelSpectrogram(sample_rate=target_sr, n_mels=n_mels)(torch.tensor(waveform).unsqueeze(0))
+    mel = (mel - mel.mean()) / mel.std()
+    np.save(out_dir / f"{audio_path.stem}_mel.npy", mel.squeeze().cpu().numpy())
+
+# ===============================================================
+# === ALL-IN-ONE PIPELINE ======================================
+# ===============================================================
+
+def run_all_preprocessings():
+    raw_dir, out_dir = DEFAULT_INPUT_DIR, DEFAULT_PROCESSED_DIR
+    out_dir.mkdir(parents=True, exist_ok=True)
+    for mp4 in raw_dir.glob("*.mp4"):
+        tmp = DEFAULT_TMP_ROOT / mp4.stem
+        shutil.rmtree(tmp, ignore_errors=True)
+        tmp.mkdir(parents=True, exist_ok=True)
+        try:
+            extract_frames_ffmpeg(mp4, tmp)
+            frames = process_frames_dir(tmp, 0.5, 0.25, 3, ["tesseract", "easyocr"])
+            segs = merge_frame_results(frames)
+            with open(out_dir / f"{mp4.stem}_captions.json", "w") as f:
+                json.dump({"video": mp4.stem, "segments": segs}, f, ensure_ascii=False, indent=2)
+
+            wav_path = out_dir / f"{mp4.stem}.wav"
+            extract_audio_ffmpeg(mp4, wav_path)
+            preprocess_ravdess_audio(wav_path, out_dir)
+            wav_path.unlink(missing_ok=True)
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+
+# ===============================================================
+# === CLI ENTRY ================================================
+# ===============================================================
 
 def main(argv=None):
-    p = argparse.ArgumentParser(description="Unified OCR preprocessing -> single cleaned captions JSON.")
-    p.add_argument("--video", help="Path to MP4 video (defaults to data/emotion/input/raw/).")
-    p.add_argument("--frames-dir", help="Use existing frames dir instead of extracting.")
-    p.add_argument("--interval", type=float, default=0.5)
-    p.add_argument("--crop", type=float, default=0.25)
-    p.add_argument("--scale-h", type=int, default=720)
-    p.add_argument("--out-root", help="Output root (defaults to data/emotion/processed/).")
-    p.add_argument("--min-len", type=int, default=3)
-    p.add_argument("--sim-cutoff", type=float, default=0.85)
-    p.add_argument("--merge-gap", type=float, default=0.25)
-    p.add_argument("--engine-order", nargs="+", default=["tesseract", "easyocr"])
+    p = argparse.ArgumentParser(description="Unified OCR + RAVDESS preprocessing pipeline.")
+    p.add_argument("--video", help="Path to MP4 video for OCR/audio preprocessing.")
+    p.add_argument("--audio", help="Path to WAV file for RAVDESS preprocessing.")
+    p.add_argument("--all", action="store_true", help="Run all available preprocessings automatically.")
     args = p.parse_args(argv)
 
-    input_video = None
-    frames_dir = None
+    if args.all:
+        run_all_preprocessings()
+        return
 
-    if args.frames_dir:
-        frames_dir = Path(args.frames_dir)
-        if not frames_dir.exists():
-            alt = REPO_ROOT / args.frames_dir
-            if alt.exists():
-                frames_dir = alt
-            else:
-                raise FileNotFoundError(f"Frames dir not found: {args.frames_dir}")
-        video_basename = frames_dir.name
-    elif args.video:
+    out_dir = DEFAULT_PROCESSED_DIR
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    if args.video:
         video_path = Path(args.video)
         if not video_path.exists():
             alt = DEFAULT_INPUT_DIR / Path(args.video).name
-            if alt.exists():
-                video_path = alt
-            else:
+            if not alt.exists():
                 raise FileNotFoundError(f"Video not found: {args.video}")
-        input_video = video_path
-        video_basename = video_path.stem
-    else:
-        raise ValueError("Either --video or --frames-dir must be provided.")
+            video_path = alt
 
-    out_root = Path(args.out_root) if args.out_root else DEFAULT_PROCESSED_DIR
-    out_root.mkdir(parents=True, exist_ok=True)
-
-    tmp_frames_dir = DEFAULT_TMP_ROOT / video_basename
-    if tmp_frames_dir.exists():
-        shutil.rmtree(tmp_frames_dir)
-    tmp_frames_dir.mkdir(parents=True, exist_ok=True)
-
-    try:
-        if input_video:
-            extract_frames_ffmpeg(input_video, tmp_frames_dir, interval=args.interval, scale_h=args.scale_h)
-            frames_dir = tmp_frames_dir
-
-        frames_results = process_frames_dir(frames_dir, args.interval, args.crop, args.min_len, args.engine_order)
-        segments = merge_frame_results(frames_results, args.sim_cutoff, args.merge_gap)
-
-        out_json = out_root / f"{video_basename}_captions.json"
-        with open(out_json, "w", encoding="utf8") as fh:
-            json.dump({"video": video_basename, "segments": segments}, fh, ensure_ascii=False, indent=2)
-
-    finally:
+        tmp = DEFAULT_TMP_ROOT / video_path.stem
+        shutil.rmtree(tmp, ignore_errors=True)
+        tmp.mkdir(parents=True, exist_ok=True)
         try:
-            if tmp_frames_dir.exists():
-                shutil.rmtree(tmp_frames_dir)
-        except Exception:
-            pass
+            extract_frames_ffmpeg(video_path, tmp)
+            frames = process_frames_dir(tmp, 0.5, 0.25, 3, ["tesseract", "easyocr"])
+            segs = merge_frame_results(frames)
+            with open(out_dir / f"{video_path.stem}_captions.json", "w") as f:
+                json.dump({"video": video_path.stem, "segments": segs}, f, ensure_ascii=False, indent=2)
+
+            wav_path = out_dir / f"{video_path.stem}.wav"
+            extract_audio_ffmpeg(video_path, wav_path)
+            preprocess_ravdess_audio(wav_path, out_dir)
+            wav_path.unlink(missing_ok=True)
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+        return
+
+    if args.audio:
+        audio_path = Path(args.audio)
+        if not audio_path.exists():
+            alt = DEFAULT_INPUT_DIR / Path(args.audio).name
+            if not alt.exists():
+                raise FileNotFoundError(f"Audio file not found: {args.audio}")
+            audio_path = alt
+        preprocess_ravdess_audio(audio_path, out_dir)
+        return
 
 
 if __name__ == "__main__":
