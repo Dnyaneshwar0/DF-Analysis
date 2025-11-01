@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useRef } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   ResponsiveContainer,
   LineChart,
@@ -7,20 +7,10 @@ import {
   YAxis,
   Tooltip,
   CartesianGrid,
+  Label,
 } from 'recharts';
 
 import mockData from '../mock/mockData';
-
-// try static import first, fallback to require at runtime
-let eddiewoo;
-try {
-  // bundlers will resolve this; if undefined will throw in some setups
- 
-  eddiewoo = require('../mock/eddiewoo.mp4');
-} catch (e) {
-  // if require fails, leave undefined — we'll handle it in component
-  eddiewoo = undefined;
-}
 
 /* ------------------ Helpers ------------------ */
 const formatTimeTick = (s) => {
@@ -75,71 +65,220 @@ const downloadCSV = (filename, rows) => {
   URL.revokeObjectURL(url);
 };
 
-/* ------------------ Line Graph ------------------ */
+/* ------------------ Custom tooltip (dedupes payload entries by stable key) ------------------ */
+function CustomTooltip({ active, payload, label }) {
+  if (!active || !payload || payload.length === 0) return null;
+
+  const seen = new Set();
+  const items = [];
+
+  for (const p of payload) {
+    if (!p) continue;
+    // Use dataKey as the stable identifier
+    const rawKey = (p.dataKey ?? p.name ?? '').toString();
+    const key = rawKey.toLowerCase().trim();
+    if (!key) continue;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const display = p.name ?? rawKey;
+    items.push({ key, label: display, value: p.value, color: p.color ?? p.stroke ?? '#94a3b8' });
+  }
+
+  if (items.length === 0) return null;
+
+  return (
+    <div style={{ background: '#0f172a', color: '#e6eef8', padding: 10, borderRadius: 8, border: '1px solid #334155' }}>
+      <div style={{ fontSize: 12, marginBottom: 6 }}>{`Time: ${formatTimeTick(Number(label))}`}</div>
+      {items.map((it) => (
+        <div key={it.key} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginTop: 6 }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <div style={{ width: 10, height: 10, background: it.color, borderRadius: 3 }} />
+            <div>{it.label}</div>
+          </div>
+          <div>{`${(Number(it.value || 0) * 100).toFixed(2)}%`}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ------------------ EmotionLineGraph (normalized keys, dedupe, tightened Y-axis spacing) ------------------ */
 function EmotionLineGraph({ linegraphData, colorMap }) {
   const defaultShape = useMemo(() => ({ video: '', top_emotions: [], data: [] }), []);
   const payload = linegraphData || defaultShape;
-  const data = useMemo(() => payload.data || [], [payload]);
-  const topEmotions = useMemo(() => payload.top_emotions || [], [payload]);
+  const rawData = useMemo(() => payload.data || [], [payload]);
+
+  // Normalize top emotions: [{ key, label }]
+  const topEmotions = useMemo(() => {
+    const raw = payload.top_emotions || [];
+    const seen = new Set();
+    const list = [];
+    for (const e of raw) {
+      if (typeof e !== 'string') continue;
+      const key = e.toLowerCase().trim();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      list.push({ key, label: e });
+    }
+    return list;
+  }, [payload]);
+
+  // Normalize data keys so dataKey matches normalized keys
+  const data = useMemo(() => {
+    return (rawData || []).map((pt) => {
+      const out = {};
+      out.time = Number(pt.time ?? 0);
+      if (pt.text != null) out.text = pt.text;
+      if (pt.confidence != null) out.confidence = pt.confidence;
+      Object.keys(pt || {}).forEach((k) => {
+        if (k === 'time' || k === 'text' || k === 'confidence') return;
+        const normalizedKey = k.toLowerCase().trim();
+        const maybeNum = Number(pt[k]);
+        out[normalizedKey] = Number.isNaN(maybeNum) ? pt[k] : maybeNum;
+      });
+      return out;
+    });
+  }, [rawData]);
+
+  const initialVis = useMemo(() => {
+    const m = {};
+    (topEmotions || []).forEach((e) => (m[e.key] = true));
+    return m;
+  }, [topEmotions]);
+
+  const [visible, setVisible] = useState(initialVis);
+  useEffect(() => setVisible(initialVis), [payload.video]); // reset on new payload
 
   const [isAnimating, setIsAnimating] = useState(true);
   const BASE_DURATION = 900;
   const STAGGER = 160;
-
   useEffect(() => {
     const total = BASE_DURATION + STAGGER * Math.max(0, topEmotions.length - 1);
     const t = setTimeout(() => setIsAnimating(false), total + 80);
     return () => clearTimeout(t);
-  }, [payload, topEmotions.length]);
+  }, [topEmotions.length]);
+
+  const latestValue = (emoKey) => {
+    if (!data || data.length === 0) return 0;
+    const last = data[data.length - 1];
+    return Number(last[emoKey] ?? 0);
+  };
+
+  const toggle = (emoKey) => setVisible((v) => ({ ...v, [emoKey]: !v[emoKey] }));
+
+  const fmtTime = (s) => {
+    if (s == null || isNaN(s)) return '';
+    const sec = Math.floor(s);
+    if (sec < 60) return `${sec}s`;
+    return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+  };
+
+  // Safe X domain
+  const xDomain = useMemo(() => {
+    if (!data || data.length === 0) return ['dataMin', 'dataMax'];
+    const arr = data.map((d) => Number(d.time ?? 0));
+    const min = Math.min(...arr);
+    const max = Math.max(...arr);
+    return [min, max];
+  }, [data]);
 
   return (
     <div className="w-full">
       <div className="bg-slate-800 rounded-lg p-4 shadow-sm border border-slate-700">
-        <div className="flex items-center justify-between mb-2">
-          <h4 className="text-white text-lg font-semibold">Text Emotion Timeline</h4>
-          <span className="text-slate-400 text-sm">{payload.video || ''}</span>
+        <div className="flex items-start justify-between mb-2">
+          <div>
+            <h4 className="text-white text-lg font-semibold">Intensity Variation</h4>
+            {/* subtitle removed intentionally */}
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 bg-slate-900 px-2 py-1 rounded">
+              {topEmotions.map(({ key, label }) => (
+                <button
+                  key={key}
+                  onClick={() => toggle(key)}
+                  className={`flex items-center gap-2 px-2 py-1 rounded text-xs focus:outline-none ${visible[key] ? 'opacity-100' : 'opacity-40'}`}
+                  title={`${label} — click to toggle`}
+                >
+                  <span className="w-3 h-3 rounded-full inline-block" style={{ background: colorMap[key] || '#94a3b8' }} />
+                  <span className="text-slate-200">{label}</span>
+                  <span className="text-slate-400">·</span>
+                  <span className="text-slate-200" style={{ minWidth: 48, textAlign: 'right' }}>
+                    {(latestValue(key) * 100).toFixed(1)}%
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         <div style={{ height: 320 }} className="w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data} margin={{ top: 10, right: 16, left: 0, bottom: 6 }}>
+            <LineChart
+              data={data}
+              // tightened left margin so Y axis uses less horizontal space
+              margin={{ top: 10, right: 18, left: 56, bottom: 28 }}
+            >
               <CartesianGrid stroke="#0b1220" strokeOpacity={0.12} />
+
               <XAxis
                 dataKey="time"
-                tickFormatter={formatTimeTick}
+                tickFormatter={fmtTime}
                 axisLine={false}
                 tick={{ fill: '#9CA3AF', fontSize: 12 }}
-                domain={[data.length ? data[0]?.time : 'dataMin', 'dataMax']}
+                domain={xDomain}
                 type="number"
-              />
+                allowDecimals={false}
+              >
+                <Label value="Time (s)" position="insideBottom" offset={-6} fill="#94a3b8" />
+              </XAxis>
+
+              {/* tighter Y axis width to reduce wasted space */}
               <YAxis
+                ticks={[0, 0.25, 0.5, 0.75, 1]}
                 domain={[0, 1]}
                 tickFormatter={(v) => `${Math.round(v * 100)}%`}
-                tick={{ fill: '#9CA3AF', fontSize: 12 }}
+                tick={{ fill: '#CBD5E1', fontSize: 12 }}
                 axisLine={false}
-              />
+                width={64}
+                tickLine={false}
+                type="number"
+                allowDecimals={true}
+                allowDataOverflow={false}
+                tickCount={5}
+                minTickGap={8}
+                yAxisId="main"
+              >
+                <Label value="Intensity (%)" angle={-90} position="insideLeft" offset={-6} fill="#94a3b8" />
+              </YAxis>
+
               <Tooltip
-                contentStyle={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 8 }}
-                labelFormatter={(label) => `Time: ${formatTimeTick(label)}`}
-                formatter={(value, name) => [Number(value).toFixed(3), name]}
+                content={<CustomTooltip />}
                 cursor={{ stroke: '#1f2937' }}
-                wrapperStyle={{ pointerEvents: isAnimating ? 'none' : 'auto' }}
+                formatter={null}
+                labelFormatter={null}
               />
 
-              {topEmotions.map((emo, idx) => (
-                <Line
-                  key={emo}
-                  type="monotone"
-                  dataKey={emo}
-                  stroke={colorMap[emo] || '#94a3b8'}
-                  strokeWidth={2}
-                  dot={false}
-                  isAnimationActive={true}
-                  animationDuration={BASE_DURATION}
-                  animationBegin={idx * STAGGER}
-                  opacity={1}
-                />
-              ))}
+              {/* Render lines with normalized dataKey (key) and stable label (name) */}
+              {topEmotions.map(({ key, label }, idx) =>
+                visible[key] ? (
+                  <Line
+                    key={`${key}-${idx}`}
+                    type="monotone"
+                    dataKey={key}
+                    name={label}
+                    stroke={colorMap[key] || '#94a3b8'}
+                    strokeWidth={2}
+                    dot={false}
+                    isAnimationActive={isAnimating}
+                    animationDuration={BASE_DURATION}
+                    animationBegin={idx * STAGGER}
+                    activeDot={{ r: 4 }}
+                    connectNulls
+                    yAxisId="main"
+                  />
+                ) : null
+              )}
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -148,7 +287,7 @@ function EmotionLineGraph({ linegraphData, colorMap }) {
   );
 }
 
-/* ------------------ Table ------------------ */
+/* ------------------ SegmentsTable (unchanged) ------------------ */
 function SegmentsTable({ segments, onSeek }) {
   const [query, setQuery] = useState('');
   const [sortKey, setSortKey] = useState('start');
@@ -351,7 +490,7 @@ function SegmentsTable({ segments, onSeek }) {
   );
 }
 
-/* ------------------ EmotionCard (full) ------------------ */
+/* ------------------ EmotionCard (final) ------------------ */
 export default function EmotionCard() {
   const tabs = [
     { id: 'audio', label: 'Audio Analysis' },
@@ -360,35 +499,13 @@ export default function EmotionCard() {
   ];
   const [active, setActive] = useState('audio');
 
-  // player ref & autoplay toggle (default: seek-only)
-  const videoRef = useRef(null);
-  const [autoplayOnSeek, setAutoplayOnSeek] = useState(false);
-  const [videoStatus, setVideoStatus] = useState({ loaded: false, error: null, src: eddiewoo || null });
-
-  useEffect(() => {
-    // if require didn't resolve at import time, try dynamic require (some bundlers)
-    if (!videoStatus.src) {
-      try {
-        // eslint-disable-next-line global-require
-        const v = require('../mock/eddiewoo.mp4');
-        setVideoStatus((s) => ({ ...s, src: v }));
-      } catch (e) {
-        // leave src null; UI will show error
-        console.error('eddiewoo import failed:', e);
-      }
-    }
-   
-  }, []);
-
-  // linegraph (prefer linegraph payload, fallback to timeline)
   const linegraph = useMemo(
     () =>
       mockData?.emotion?.linegraph ||
       { video: mockData.video || '', top_emotions: [], data: mockData?.emotion?.timeline || [] },
-    [mockData]
+    []
   );
 
-  // robust segments builder (prefer detailed segments)
   const segments = useMemo(() => {
     if (mockData?.segments && Array.isArray(mockData.segments) && mockData.segments.length) return mockData.segments;
     if (mockData?.emotion?.segments && Array.isArray(mockData.emotion.segments) && mockData.emotion.segments.length)
@@ -408,7 +525,9 @@ export default function EmotionCard() {
       const intensities = [];
 
       if (topEmotions.length) {
-        topEmotions.forEach((emo) => {
+        // use deduped topEmotions in same order
+        const dedup = Array.from(new Set(topEmotions));
+        dedup.forEach((emo) => {
           emotions.push(emo);
           intensities.push(Number(pt[emo] ?? 0));
         });
@@ -434,7 +553,7 @@ export default function EmotionCard() {
         confidence,
       };
     });
-  }, [mockData]);
+  }, []);
 
   const colorMap = {
     neutral: '#93C5FD',
@@ -445,183 +564,44 @@ export default function EmotionCard() {
     curiosity: '#C7F9CC',
   };
 
-  // seek handler: waits for metadata if necessary
+  // placeholder seek handler (integration point)
   const handleSeek = (t) => {
-    if (!videoRef.current) {
-      console.warn('No videoRef available for seek.');
-      return;
-    }
-    const player = videoRef.current;
-
-    const doSeek = () => {
-      const safeT = Math.max(0, Math.min(t, player.duration || t));
-      player.currentTime = safeT;
-      if (autoplayOnSeek) {
-        player
-          .play()
-          .then(() => {
-            /* playing */
-          })
-          .catch((err) => {
-            console.warn('Play prevented:', err);
-          });
-      }
-    };
-
-    if (typeof player.duration === 'number' && !isNaN(player.duration) && player.duration > 0) {
-      doSeek();
-    } else {
-      // wait for loadedmetadata then seek once
-      const onMeta = () => {
-        doSeek();
-        player.removeEventListener('loadedmetadata', onMeta);
-      };
-      player.addEventListener('loadedmetadata', onMeta);
-    }
-  };
-
-  // video handlers for diagnostics & UI feedback
-  const onVideoLoaded = () => {
-    setVideoStatus((s) => ({ ...s, loaded: true, error: null }));
-    // log quick diagnostics
-    try {
-      const player = videoRef.current;
-      // eslint-disable-next-line no-console
-      console.log('video ready, duration:', player.duration, 'src:', player.currentSrc || player.src);
-    } catch (e) {
-      // noop
-    }
-  };
-
-  const onVideoError = (e) => {
-    console.error('Video error event:', e);
-    setVideoStatus((s) => ({ ...s, error: 'Failed to load video — check path, server, or codec.' }));
+    // integrate with your video player: playerRef.current?.seek(t)
+    console.log('seek to', t);
   };
 
   return (
-    <div>
-      {/* Video card above analysis */}
-      <div className="bg-slate-800 rounded-xl p-4 mb-4 shadow-sm border border-slate-700">
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <div className="text-white font-semibold">Video: {mockData?.video || 'sample'}</div>
-            <div className="text-slate-400 text-sm">Filename: eddiewoo.mp4 (local mock)</div>
-          </div>
+    <section className="bg-slate-800 rounded-xl p-6 w-full shadow-lg border border-slate-700">
+      <div className="flex flex-wrap items-center justify-between mb-4 gap-3">
+        <h3 className="text-xl font-semibold text-white">Model-wise Analysis</h3>
 
-          <div className="flex items-center gap-3">
-            <label className="text-slate-300 text-sm flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={autoplayOnSeek}
-                onChange={(e) => setAutoplayOnSeek(e.target.checked)}
-                className="accent-slate-500"
-              />
-              <span className="text-slate-400 text-sm">Auto-play on seek</span>
-            </label>
-          </div>
-        </div>
-
-        <div className="w-full bg-black rounded overflow-hidden relative">
-          {!videoStatus.src && (
-            <div className="p-6 text-center text-slate-300">
-              Video not found in <code>src/mock/eddiewoo.mp4</code>. Put the file in <code>src/mock/</code> or use
-              <code>public/</code> and reference <code>/eddiewoo.mp4</code>.
-            </div>
-          )}
-
-          {videoStatus.error && (
-            <div className="p-4 text-center text-amber-300 bg-slate-900">
-              {videoStatus.error}
-              <div className="text-xs text-slate-400 mt-2">Open DevTools → Network/Console for diagnostics.</div>
-            </div>
-          )}
-
-          {videoStatus.src && (
-            <>
-              <video
-                ref={videoRef}
-                src={videoStatus.src}
-                controls
-                className="w-full"
-                preload="metadata"
-                onLoadedMetadata={onVideoLoaded}
-                onError={onVideoError}
-              />
-
-              {/* overlay play button — provides an explicit user gesture if native controls don't register */}
-              <button
-                onClick={() => {
-                  if (!videoRef.current) return;
-                  // explicit user gesture: play (some browsers require gesture)
-                  videoRef.current
-                    .play()
-                    .then(() => {})
-                    .catch(() => {
-                      // if play fails, try seeking to 0 then play on user click
-                      try {
-                        videoRef.current.currentTime = 0;
-                        videoRef.current.play().catch(() => {});
-                      } catch (e) {
-                        // ignore
-                      }
-                    });
-                }}
-                className="absolute left-4 bottom-4 bg-slate-700 hover:bg-slate-600 text-white px-3 py-1 rounded text-sm"
-                aria-label="Play video"
-              >
-                Play
-              </button>
-            </>
-          )}
+        <div className="flex gap-3 flex-wrap">
+          {tabs.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setActive(t.id)}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-150 focus:outline-none ${
+                active === t.id ? 'bg-white text-slate-900 shadow' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Analysis card */}
-      <section className="bg-slate-800 rounded-xl p-6 w-full shadow-lg border border-slate-700">
-        <div className="flex flex-wrap items-center justify-between mb-4 gap-3">
-          <h3 className="text-xl font-semibold text-white">Model-wise Analysis</h3>
+      <div className="bg-slate-900 rounded-lg p-6 text-slate-200 min-h-[420px] md:min-h-[480px]">
+        {active === 'audio' && <div className="text-slate-400 text-sm">Audio analysis results will appear here.</div>}
 
-          <div className="flex gap-3 flex-wrap">
-            <button
-              onClick={() => setActive('audio')}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-150 focus:outline-none ${
-                active === 'audio' ? 'bg-white text-slate-900 shadow' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-              }`}
-            >
-              Audio Analysis
-            </button>
-            <button
-              onClick={() => setActive('video')}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-150 focus:outline-none ${
-                active === 'video' ? 'bg-white text-slate-900 shadow' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-              }`}
-            >
-              Video Analysis
-            </button>
-            <button
-              onClick={() => setActive('text')}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-150 focus:outline-none ${
-                active === 'text' ? 'bg-white text-slate-900 shadow' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-              }`}
-            >
-              Text Analysis
-            </button>
-          </div>
-        </div>
+        {active === 'video' && <div className="text-slate-400 text-sm">Video analysis results will appear here.</div>}
 
-        <div className="bg-slate-900 rounded-lg p-6 text-slate-200 min-h-[420px] md:min-h-[480px]">
-          {active === 'audio' && <div className="text-slate-400 text-sm">Audio analysis results will appear here.</div>}
-
-          {active === 'video' && <div className="text-slate-400 text-sm">Video analysis results will appear here.</div>}
-
-          {active === 'text' && (
-            <>
-              <EmotionLineGraph linegraphData={linegraph} colorMap={colorMap} />
-              <SegmentsTable segments={segments} onSeek={handleSeek} />
-            </>
-          )}
-        </div>
-      </section>
-    </div>
+        {active === 'text' && (
+          <>
+            <EmotionLineGraph linegraphData={linegraph} colorMap={colorMap} />
+            <SegmentsTable segments={segments} onSeek={handleSeek} />
+          </>
+        )}
+      </div>
+    </section>
   );
 }
