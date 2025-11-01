@@ -25,15 +25,117 @@ const mockData = {
       `Further investigation recommended for borderline cases.`,
   },
 
-  // Emotion section reset for reinitialization
+  // Emotion section now includes the provided linegraph-ready data + segments table
   emotion: {
-    // empty timeline ready for reinitialization
-    timeline: [],
-    // metadata or schema hint for UI/components
+    // timeline: points for the line graph
+    timeline: [
+      { time: 0.0, neutral: 0.3353, admiration: 0.1504, annoyance: 0.0 },
+      { time: 2.0, neutral: 0.3201, admiration: 0.1054, annoyance: 0.0686 },
+      { time: 6.0, neutral: 0.386,  admiration: 0.0974, annoyance: 0.0 },
+      { time: 11.0, neutral: 0.3293, admiration: 0.0829, annoyance: 0.0732 },
+      { time: 12.0, neutral: 0.4471, admiration: 0.0911, annoyance: 0.0705 },
+      { time: 12.5, neutral: 0.2924, admiration: 0.0923, annoyance: 0.0605 },
+      { time: 13.0, neutral: 0.3293, admiration: 0.0829, annoyance: 0.0732 },
+      { time: 15.0, neutral: 0.1738, admiration: 0.0939, annoyance: 0.0 },
+      { time: 20.5, neutral: 0.3371, admiration: 0.0853, annoyance: 0.0 },
+    ],
+    // schema hint for UI/components
     schema: {
       fields: ['timestamp', 'emotion', 'confidence'],
-      timestampFormat: 'HH:mm:ss', // UI hint
+      timestampFormat: 'HH:mm:ss',
     },
+    // linegraph payload (ready to feed to chart component)
+    linegraph: {
+      video: 'eddiewoo',
+      top_emotions: ['neutral', 'admiration', 'annoyance'],
+      data: [
+        { time: 0.0,  neutral: 0.3353, admiration: 0.1504, annoyance: 0.0 },
+        { time: 2.0,  neutral: 0.3201, admiration: 0.1054, annoyance: 0.0686 },
+        { time: 6.0,  neutral: 0.3860, admiration: 0.0974, annoyance: 0.0 },
+        { time: 11.0, neutral: 0.3293, admiration: 0.0829, annoyance: 0.0732 },
+        { time: 12.0, neutral: 0.4471, admiration: 0.0911, annoyance: 0.0705 },
+        { time: 12.5, neutral: 0.2924, admiration: 0.0923, annoyance: 0.0605 },
+        { time: 13.0, neutral: 0.3293, admiration: 0.0829, annoyance: 0.0732 },
+        { time: 15.0, neutral: 0.1738, admiration: 0.0939, annoyance: 0.0 },
+        { time: 20.5, neutral: 0.3371, admiration: 0.0853, annoyance: 0.0 },
+      ],
+    },
+
+    // segments: detailed table rows for the UI table (added)
+    segments: [
+      {
+        start: 0.0,
+        end: 2.0,
+        text: 'one a the golden ratio is a mathematical reality',
+        emotions: ['neutral', 'admiration', 'approval'],
+        intensities: [0.3353, 0.1504, 0.0813],
+        confidence: 0.3353,
+      },
+      {
+        start: 2.0,
+        end: 6.0,
+        text: 'one a that like facts you can find everywhere',
+        emotions: ['neutral', 'admiration', 'annoyance'],
+        intensities: [0.3201, 0.1054, 0.0686],
+        confidence: 0.3201,
+      },
+      {
+        start: 6.0,
+        end: 11.0,
+        text: 'from the changes of your fingers to the pillars of the parthenon',
+        emotions: ['neutral', 'admiration', 'approval'],
+        intensities: [0.386, 0.0974, 0.0737],
+        confidence: 0.386,
+      },
+      {
+        start: 11.0,
+        end: 12.0,
+        text: "that's why even at a party of 5000 people",
+        emotions: ['neutral', 'admiration', 'annoyance'],
+        intensities: [0.3293, 0.0829, 0.0732],
+        confidence: 0.3293,
+      },
+      {
+        start: 12.0,
+        end: 12.5,
+        text: 'people',
+        emotions: ['neutral', 'admiration', 'annoyance'],
+        intensities: [0.4471, 0.0911, 0.0705],
+        confidence: 0.4471,
+      },
+      {
+        start: 12.5,
+        end: 13.0,
+        text: "that's even at a poverty of 50 5000 penplelf",
+        emotions: ['neutral', 'admiration', 'annoyance'],
+        intensities: [0.2924, 0.0923, 0.0605],
+        confidence: 0.2924,
+      },
+      {
+        start: 13.0,
+        end: 15.0,
+        text: "that's why even at a party of 5000 people",
+        emotions: ['neutral', 'admiration', 'annoyance'],
+        intensities: [0.3293, 0.0829, 0.0732],
+        confidence: 0.3293,
+      },
+      {
+        start: 15.0,
+        end: 19.5,
+        text: "i'm proud to declared love mathematics",
+        emotions: ['love', 'neutral', 'admiration'],
+        intensities: [0.2275, 0.1738, 0.0939],
+        confidence: 0.2275,
+      },
+      {
+        start: 20.5,
+        end: 21.5,
+        text: 'will seal a we',
+        emotions: ['neutral', 'admiration', 'curiosity'],
+        intensities: [0.3371, 0.0853, 0.0714],
+        confidence: 0.3371,
+      },
+    ],
   },
 
   reverseEng: {
