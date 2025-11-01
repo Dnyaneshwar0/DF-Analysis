@@ -8,6 +8,8 @@ import {
   Tooltip,
   CartesianGrid,
   Label,
+  Area,
+  ComposedChart
 } from 'recharts';
 
 import mockData from '../mock/mockData';
@@ -295,12 +297,15 @@ function SegmentsTable({ segments, onSeek }) {
   const [expanded, setExpanded] = useState(null);
 
   const colorMap = {
-    neutral: '#93C5FD',
-    admiration: '#FDE68A',
-    annoyance: '#FCA5A5',
-    approval: '#60A5FA',
-    love: '#FB7185',
-    curiosity: '#C7F9CC',
+    neutral: '#60A5FA',     // soft cyan-blue
+    admiration: '#FBBF24',  // golden amber
+    annoyance: '#F87171',   // coral red
+    approval: '#34D399',    // mint green
+    love: '#FB7185',        // rose pink
+    curiosity: '#A78BFA',   // violet
+    fearful: '#F43F5E',     // vivid magenta-red
+    surprised: '#38BDF8',   // bright sky blue
+    sad: '#37dfb2ff',         // muted blue-gray
   };
 
   const rows = useMemo(() => {
@@ -556,13 +561,47 @@ export default function EmotionCard() {
   }, []);
 
   const colorMap = {
-    neutral: '#93C5FD',
-    admiration: '#FDE68A',
-    annoyance: '#FCA5A5',
-    approval: '#60A5FA',
-    love: '#FB7185',
-    curiosity: '#C7F9CC',
+    neutral: '#60A5FA',     // soft cyan-blue
+    admiration: '#FBBF24',  // golden amber
+    annoyance: '#F87171',   // coral red
+    approval: '#34D399',    // mint green
+    love: '#FB7185',        // rose pink
+    curiosity: '#A78BFA',   // violet
+    fearful: '#F43F5E',     // vivid magenta-red
+    surprised: '#38BDF8',   // bright sky blue
+    sad: '#94A3B8',         // muted blue-gray
   };
+
+  const waveform = mockData?.audioWaveform;
+
+  // --- convert emotionIntensities -> linegraph shape ----
+  const convertEmotionIntensities = (ei) => {
+    if (!ei || !ei.frames) return { video: '', top_emotions: [], data: [] };
+    const times = ei.frames.time || [];
+    const ints = ei.frames.intensities || [];
+    const emotions = ei.emotions || [];
+
+    // build `data` array: { time: <num>, emo1: <val>, emo2: <val>, ... }
+    const data = times.map((t, i) => {
+      const row = { time: Number(t) };
+      const vals = ints[i] || [];
+      emotions.forEach((e, k) => {
+        row[e.toLowerCase().trim()] = Number(vals[k] ?? 0);
+      });
+      return row;
+    });
+
+    // keep top_emotions normalized (lowercase keys to match conversion)
+    const top_emotions = emotions.map((e) => e.toLowerCase().trim());
+
+    return {
+      video: mockData.video || '',
+      top_emotions,
+      data,
+    };
+  };
+
+  const emotionIntensitiesLinegraph = useMemo(() => convertEmotionIntensities(mockData.emotionIntensities), []);
 
   // placeholder seek handler (integration point)
   const handleSeek = (t) => {
@@ -591,7 +630,97 @@ export default function EmotionCard() {
       </div>
 
       <div className="bg-slate-900 rounded-lg p-6 text-slate-200 min-h-[420px] md:min-h-[480px]">
-        {active === 'audio' && <div className="text-slate-400 text-sm">Audio analysis results will appear here.</div>}
+          {active === 'audio' && (
+            <div className="rounded-lg bg-slate-800 p-4 shadow border border-slate-700">
+              <h4 className="text-cyan-400 text-lg font-semibold mb-3">Acoustic Waveform</h4>
+
+              <div className="text-slate-400 text-sm mb-4">
+                Sample Rate: {waveform?.meta?.sr} Hz · Frames: {waveform?.meta?.num_frames}
+              </div>
+
+              <ResponsiveContainer width="100%" height={260}>
+                <ComposedChart
+                  data={(waveform?.frames?.time || []).map((t, i) => ({
+                    time: t,
+                    amplitude: waveform?.frames?.envelope?.[i] ?? 0,
+                  }))}
+                  margin={{ top: 10, right: 20, left: 60, bottom: 30 }}
+                >
+                  {/*  Cyan Gradient Definition */}
+                  <defs>
+                    <linearGradient id="cyanGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#22d3ee" stopOpacity={0.8} />
+                      <stop offset="100%" stopColor="#22d3ee" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+
+                  <CartesianGrid stroke="#0b1220" strokeOpacity={0.15} />
+
+                  <XAxis
+                    dataKey="time"
+                    tick={{ fill: '#9CA3AF', fontSize: 12 }}
+                    label={{
+                      value: waveform?.axes?.x_label || 'Time (s)',
+                      position: 'insideBottom',
+                      offset: -5,
+                      fill: '#94a3b8',
+                    }}
+                  />
+
+                  <YAxis
+                    tickFormatter={(v) => v.toFixed(2)}
+                    tick={{ fill: '#CBD5E1', fontSize: 12 }}
+                    label={{
+                      value: waveform?.axes?.y_label || 'Normalized Amplitude',
+                      angle: -90,
+                      position: 'insideLeft',
+                      fill: '#94a3b8',
+                      style: { textAnchor: 'middle' },
+                      offset: -35,
+                    }}
+                    domain={[0, 1]}
+                  />
+
+                  <Tooltip
+                    formatter={(v) => v.toFixed(2)}
+                    labelFormatter={(v) => `${v}s`}
+                    contentStyle={{
+                      backgroundColor: '#0f172a',
+                      borderColor: '#334155',
+                    }}
+                  />
+
+                  {/* ✅ AREA — Visible Cyan Gradient */}
+                  <Area
+                    type="monotone"
+                    dataKey="amplitude"
+                    stroke="none"
+                    fill="url(#cyanGradient)"
+                    fillOpacity={0.6}
+                    isAnimationActive={true}
+                    animationDuration={1400}
+                    animationBegin={0}
+                  />
+
+                  {/* ✅ LINE — Animated Cyan Curve */}
+                  <Line
+                    type="monotone"
+                    dataKey="amplitude"
+                    stroke="#22d3ee"
+                    strokeWidth={2.5}
+                    dot={false}
+                    isAnimationActive={true}
+                    animationDuration={1400}
+                    animationBegin={0}
+                  />
+                </ComposedChart>
+              </ResponsiveContainer>
+              <div className="mt-4">
+                <EmotionLineGraph linegraphData={emotionIntensitiesLinegraph} colorMap={colorMap} />
+              </div>
+              
+            </div>
+          )}
 
         {active === 'video' && <div className="text-slate-400 text-sm">Video analysis results will appear here.</div>}
 
