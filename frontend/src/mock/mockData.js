@@ -31,7 +31,7 @@ const mockData = {
     timeline: [
       { time: 0.0, neutral: 0.3353, admiration: 0.1504, annoyance: 0.0 },
       { time: 2.0, neutral: 0.3201, admiration: 0.1054, annoyance: 0.0686 },
-      { time: 6.0, neutral: 0.386,  admiration: 0.0974, annoyance: 0.0 },
+      { time: 6.0, neutral: 0.386, admiration: 0.0974, annoyance: 0.0 },
       { time: 11.0, neutral: 0.3293, admiration: 0.0829, annoyance: 0.0732 },
       { time: 12.0, neutral: 0.4471, admiration: 0.0911, annoyance: 0.0705 },
       { time: 12.5, neutral: 0.2924, admiration: 0.0923, annoyance: 0.0605 },
@@ -49,9 +49,9 @@ const mockData = {
       video: 'eddiewoo',
       top_emotions: ['neutral', 'admiration', 'annoyance'],
       data: [
-        { time: 0.0,  neutral: 0.3353, admiration: 0.1504, annoyance: 0.0 },
-        { time: 2.0,  neutral: 0.3201, admiration: 0.1054, annoyance: 0.0686 },
-        { time: 6.0,  neutral: 0.3860, admiration: 0.0974, annoyance: 0.0 },
+        { time: 0.0, neutral: 0.3353, admiration: 0.1504, annoyance: 0.0 },
+        { time: 2.0, neutral: 0.3201, admiration: 0.1054, annoyance: 0.0686 },
+        { time: 6.0, neutral: 0.386, admiration: 0.0974, annoyance: 0.0 },
         { time: 11.0, neutral: 0.3293, admiration: 0.0829, annoyance: 0.0732 },
         { time: 12.0, neutral: 0.4471, admiration: 0.0911, annoyance: 0.0705 },
         { time: 12.5, neutral: 0.2924, admiration: 0.0923, annoyance: 0.0605 },
@@ -136,6 +136,30 @@ const mockData = {
         confidence: 0.3371,
       },
     ],
+  },
+
+  // New section for acoustic waveform
+  audioWaveform: {
+    meta: {
+      sr: 16000,
+      hop_length: 512,
+      frame_duration: 0.032,
+      num_frames: 25,
+    },
+    axes: {
+      x_label: 'Time (s)',
+      y_label: 'Normalized Amplitude',
+    },
+    frames: {
+      time: [
+        0.0, 2.3, 4.6, 6.9, 9.2, 11.5, 13.8, 16.1, 18.4, 20.7, 23.0, 25.3, 27.6, 29.9, 32.2,
+        34.5, 36.8, 39.1, 41.4, 43.7, 46.0, 48.3, 50.6, 52.9, 55.2,
+      ],
+      envelope: [
+        0.13, 0.56, 0.48, 0.78, 0.41, 0.28, 0.17, 0.30, 0.40, 0.12, 0.18, 0.23, 0.31, 0.46, 0.54,
+        0.38, 0.24, 0.15, 0.28, 0.36, 0.52, 0.44, 0.22, 0.17, 0.13,
+      ],
+    },
   },
 
   reverseEng: {

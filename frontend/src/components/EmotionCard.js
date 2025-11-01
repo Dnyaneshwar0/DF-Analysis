@@ -8,6 +8,8 @@ import {
   Tooltip,
   CartesianGrid,
   Label,
+  Area,
+  ComposedChart
 } from 'recharts';
 
 import mockData from '../mock/mockData';
@@ -564,6 +566,9 @@ export default function EmotionCard() {
     curiosity: '#C7F9CC',
   };
 
+  const waveform = mockData?.audioWaveform;
+
+
   // placeholder seek handler (integration point)
   const handleSeek = (t) => {
     // integrate with your video player: playerRef.current?.seek(t)
@@ -591,7 +596,94 @@ export default function EmotionCard() {
       </div>
 
       <div className="bg-slate-900 rounded-lg p-6 text-slate-200 min-h-[420px] md:min-h-[480px]">
-        {active === 'audio' && <div className="text-slate-400 text-sm">Audio analysis results will appear here.</div>}
+          {active === 'audio' && (
+            <div className="rounded-lg bg-slate-800 p-4 shadow border border-slate-700">
+              <h4 className="text-cyan-400 text-lg font-semibold mb-3">Acoustic Waveform</h4>
+
+              <div className="text-slate-400 text-sm mb-4">
+                Sample Rate: {waveform?.meta?.sr} Hz · Frames: {waveform?.meta?.num_frames}
+              </div>
+
+              <ResponsiveContainer width="100%" height={260}>
+                <ComposedChart
+                  data={(waveform?.frames?.time || []).map((t, i) => ({
+                    time: t,
+                    amplitude: waveform?.frames?.envelope?.[i] ?? 0,
+                  }))}
+                  margin={{ top: 10, right: 20, left: 60, bottom: 30 }}
+                >
+                  {/*  Cyan Gradient Definition */}
+                  <defs>
+                    <linearGradient id="cyanGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#22d3ee" stopOpacity={0.8} />
+                      <stop offset="100%" stopColor="#22d3ee" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+
+                  <CartesianGrid stroke="#0b1220" strokeOpacity={0.15} />
+
+                  <XAxis
+                    dataKey="time"
+                    tick={{ fill: '#9CA3AF', fontSize: 12 }}
+                    label={{
+                      value: waveform?.axes?.x_label || 'Time (s)',
+                      position: 'insideBottom',
+                      offset: -5,
+                      fill: '#94a3b8',
+                    }}
+                  />
+
+                  <YAxis
+                    tickFormatter={(v) => v.toFixed(2)}
+                    tick={{ fill: '#CBD5E1', fontSize: 12 }}
+                    label={{
+                      value: waveform?.axes?.y_label || 'Normalized Amplitude',
+                      angle: -90,
+                      position: 'insideLeft',
+                      fill: '#94a3b8',
+                      style: { textAnchor: 'middle' },
+                      offset: -35,
+                    }}
+                    domain={[0, 1]}
+                  />
+
+                  <Tooltip
+                    formatter={(v) => v.toFixed(2)}
+                    labelFormatter={(v) => `${v}s`}
+                    contentStyle={{
+                      backgroundColor: '#0f172a',
+                      borderColor: '#334155',
+                    }}
+                  />
+
+                  {/* ✅ AREA — Visible Cyan Gradient */}
+                  <Area
+                    type="monotone"
+                    dataKey="amplitude"
+                    stroke="none"
+                    fill="url(#cyanGradient)"
+                    fillOpacity={0.6}
+                    isAnimationActive={true}
+                    animationDuration={1400}
+                    animationBegin={0}
+                  />
+
+                  {/* ✅ LINE — Animated Cyan Curve */}
+                  <Line
+                    type="monotone"
+                    dataKey="amplitude"
+                    stroke="#22d3ee"
+                    strokeWidth={2.5}
+                    dot={false}
+                    isAnimationActive={true}
+                    animationDuration={1400}
+                    animationBegin={0}
+                  />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
 
         {active === 'video' && <div className="text-slate-400 text-sm">Video analysis results will appear here.</div>}
 
