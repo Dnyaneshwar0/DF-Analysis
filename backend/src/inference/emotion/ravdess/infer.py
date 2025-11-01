@@ -1,20 +1,16 @@
 #!/usr/bin/env python3
 """
-RAVDESS inference (model-only)
+RAVDESS inference (model-only) with JSON waveform + TOP-3 emotion timeseries output.
+(No images generated.)
 
-This script **does not** perform audio preprocessing. It expects a
-precomputed Mel-spectrogram saved as a NumPy .npy file.
+Produces:
+  - <name>_ravdess_results.json            (emotion predictions)
+  - <name>_waveform.json                   (time + normalized amplitude envelope)
+  - <name>_top3_emotions_timeseries.json   (time + top 3 emotion intensities)
 
 Usage:
-  # preferred: use preprocessor to create <name>_mel.npy first
   python -m src.inference.emotion.ravdess.infer path/to/<name>_mel.npy
-
-If you only have a .wav or .mp4, run the preprocessing step first:
-  python backend/src/utils/emo_preprocessing.py --audio path/to/file.wav
-  or (if you want audio from video)
-  python backend/src/utils/emo_preprocessing.py --video path/to/file.mp4
 """
-
 from __future__ import annotations
 import sys
 import json
@@ -46,47 +42,141 @@ state_dict = torch.load(MODEL_PATH, map_location=device)
 model.load_state_dict(state_dict)
 model.eval()
 
-# ---- Emotion labels (RAVDESS standard) ----
+# ---- Emotion labels ----
 LABELS = ["neutral", "calm", "happy", "sad", "angry", "fearful", "disgust", "surprised"]
 
+# ---- Constants ----
+SR = 16000
+HOP_LENGTH = 512
+SMOOTH_SEC = 0.06
+
 # -------------------------------------------------------------------------
-# Inference helpers (no preprocessing here)
+# Inference helpers
 # -------------------------------------------------------------------------
 def load_mel_from_npy(npy_path: Path):
-    """Load a mel spectrogram saved as NumPy array and convert to torch tensor.
-    Expected shape on disk: (n_mels, time) or (1, n_mels, time).
-    Returns a tensor of shape (1, 1, n_mels, time) on the model device.
-    """
     arr = np.load(npy_path)
     if arr.ndim == 2:
-        arr = np.expand_dims(arr, 0)   # (1, n_mels, time)
-    if arr.ndim == 3:
-        # if already (batch, n_mels, time), take first sample
-        # convert to shape (1, 1, n_mels, time)
-        arr = arr[0]
         arr = np.expand_dims(arr, 0)
-    # now arr shape should be (1, n_mels, time)
-    tensor = torch.from_numpy(arr).unsqueeze(0).float()  # (1, 1, n_mels, time)
+    if arr.ndim == 3 and arr.shape[0] != 1:
+        arr = arr[0:1]
+    tensor = torch.from_numpy(arr).unsqueeze(0).float()  # (1,1,n_mels,T)
     return tensor.to(device, non_blocking=True)
 
+
 def predict_from_mel_tensor(mel_tensor: torch.Tensor):
-    """Run the model and return (label, probs_numpy)."""
     mel_tensor = mel_tensor.to(device)
     if mel_tensor.ndim == 3:
-        mel_tensor = mel_tensor.unsqueeze(0)  # ensure batch dim
-    # Model expects (batch, 1, n_mels, time) — adapt if needed
+        mel_tensor = mel_tensor.unsqueeze(0)
     if mel_tensor.ndim == 4:
         inp = mel_tensor
     elif mel_tensor.ndim == 2:
         inp = mel_tensor.unsqueeze(0).unsqueeze(0)
     else:
         raise ValueError(f"Unexpected mel tensor shape: {mel_tensor.shape}")
-
     with torch.no_grad():
         logits = model(inp)
         probs = F.softmax(logits, dim=1)
         pred_idx = int(probs.argmax(dim=1).item())
         return LABELS[pred_idx], probs.squeeze().cpu().numpy()
+
+# -------------------------------------------------------------------------
+# Envelope calculation and smoothing
+# -------------------------------------------------------------------------
+def amplitude_envelope_from_mel(mel: np.ndarray):
+    """Compute normalized amplitude envelope from mel per frame."""
+    env = np.mean(np.abs(mel), axis=0)
+    if env.max() > 0:
+        env = env / float(env.max())
+    return env
+
+
+def smooth_vec(x: np.ndarray, sr: int = SR, hop_length: int = HOP_LENGTH, win_sec: float = SMOOTH_SEC):
+    if win_sec <= 0:
+        return x
+    win_frames = max(1, int(win_sec * sr / hop_length))
+    kernel = np.ones(win_frames, dtype=float) / win_frames
+    return np.convolve(x, kernel, mode="same")
+
+
+# -------------------------------------------------------------------------
+# JSON exporters
+# -------------------------------------------------------------------------
+def export_waveform_json(mel_np: np.ndarray, out_path: Path, sr: int = SR, hop_length: int = HOP_LENGTH):
+    """Generate JSON containing time + normalized amplitude envelope + axis labels."""
+    env = amplitude_envelope_from_mel(mel_np)
+    env_s = smooth_vec(env)
+    n_frames = len(env_s)
+    frame_dur = hop_length / sr
+    times = (np.arange(n_frames) * frame_dur).tolist()
+    env_list = env_s.tolist()
+
+    data = {
+        "meta": {
+            "sr": sr,
+            "hop_length": hop_length,
+            "frame_duration": frame_dur,
+            "num_frames": n_frames
+        },
+        "axes": {
+            "x_label": "Time (s)",
+            "y_label": "Normalized Amplitude"
+        },
+        "frames": {
+            "time": times,
+            "envelope": env_list
+        }
+    }
+
+    out_path.write_text(json.dumps(data, indent=2))
+    print(f"Saved waveform JSON: {out_path}")
+
+
+def export_top3_emotions_timeseries_json(mel_np: np.ndarray, probs_vec: np.ndarray, out_path: Path,
+                                         sr: int = SR, hop_length: int = HOP_LENGTH):
+    """
+    Export top-3 emotion intensities across time (broadcasted from clip-level).
+    Produces:
+    - top3_emotions_timeseries.json
+    """
+    n_frames = mel_np.shape[1]
+    frame_dur = hop_length / sr
+    times = (np.arange(n_frames) * frame_dur).tolist()
+
+    probs_vec = np.asarray(probs_vec).astype(float)
+    top3_idx = np.argsort(-probs_vec)[:3]
+    top3_labels = [LABELS[i] for i in top3_idx]
+    top3_probs = probs_vec[top3_idx]
+
+    # broadcast top3 probabilities across frames
+    intensities = np.tile(top3_probs[np.newaxis, :], (n_frames, 1))
+    intensities_list = intensities.tolist()
+
+    data = {
+        "meta": {
+            "sr": sr,
+            "hop_length": hop_length,
+            "frame_duration": frame_dur,
+            "num_frames": n_frames
+        },
+        "axes": {
+            "x_label": "Time (s)",
+            "y_label": "Intensity (0..1)"
+        },
+        "emotions": top3_labels,
+        "frames": {
+            "time": times,
+            "intensities": intensities_list
+        },
+        "summary": {
+            "predicted_emotion": top3_labels[0],
+            "top3_clip_probs": [
+                {"label": lbl, "prob": float(prob)} for lbl, prob in zip(top3_labels, top3_probs)
+            ]
+        }
+    }
+
+    out_path.write_text(json.dumps(data, indent=2))
+    print(f"Saved top-3 emotions timeseries JSON: {out_path}")
 
 # -------------------------------------------------------------------------
 # CLI
@@ -100,41 +190,43 @@ def main(argv=None):
 
     inp = Path(argv[0])
     if not inp.exists():
-        # try resolving relative to repo root data folder
         alt = REPO_ROOT / inp
         if alt.exists():
             inp = alt
         else:
             raise FileNotFoundError(f"Input file not found: {argv[0]}")
 
-    # refuse to load raw audio — preprocessing must be done separately
-    if inp.suffix.lower() in {".wav", ".mp3", ".mp4", ".m4a", ".flac"}:
-        raise RuntimeError(
-            "This script no longer performs audio preprocessing. "
-            "Please run the preprocessing utility to create a mel-spectrogram .npy first.\n"
-            "Example:\n"
-            "  python backend/src/utils/emo_preprocessing.py --audio ../data/emotion/input/raw/file.wav\n"
-            "or\n"
-            "  python backend/src/utils/emo_preprocessing.py --video ../data/emotion/input/raw/file.mp4\n"
-        )
-
     if inp.suffix.lower() != ".npy":
-        raise RuntimeError("Expected a .npy mel spectrogram as input (use the preprocessing script).")
+        raise RuntimeError("Expected a .npy mel spectrogram as input.")
 
     mel_tensor = load_mel_from_npy(inp)
     label, probs = predict_from_mel_tensor(mel_tensor)
 
-    # write outputs (and print a minimal summary)
+    # Save clip-level emotion prediction
     out_json = OUT_DIR / f"{inp.stem}_ravdess_results.json"
     summary = {
         "file": str(inp),
         "predicted_emotion": label,
         "probabilities": {lbl: float(p) for lbl, p in zip(LABELS, probs)}
     }
-    with open(out_json, "w", encoding="utf8") as fh:
-        json.dump(summary, fh, indent=4)
-    # Minimal CLI feedback (one line)
+    out_json.write_text(json.dumps(summary, indent=4))
     print(f"Predicted: {label} — saved: {out_json}")
+
+    # prepare mel for JSON export
+    mel_np = mel_tensor.squeeze().cpu().numpy()
+    if mel_np.ndim == 3:
+        mel_np = mel_np[0]
+    if mel_np.ndim != 2:
+        raise RuntimeError(f"Unexpected mel numpy shape: {mel_np.shape}")
+
+    # Save waveform JSON
+    wave_json = OUT_DIR / f"{inp.stem}_waveform.json"
+    export_waveform_json(mel_np, wave_json)
+
+    # Save top-3 emotions timeseries JSON
+    emo_json = OUT_DIR / f"{inp.stem}_top3_emotions_timeseries.json"
+    export_top3_emotions_timeseries_json(mel_np, probs, emo_json)
+
 
 if __name__ == "__main__":
     main()
