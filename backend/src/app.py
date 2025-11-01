@@ -1,33 +1,77 @@
+import os
 import sys
-from pathlib import Path
+import logging
+from flask import Flask, jsonify
 
-# Point Python to the backend root (one level above /src)
-BACKEND_DIR = Path(__file__).resolve().parents[1]
-if str(BACKEND_DIR) not in sys.path:
-    sys.path.insert(0, str(BACKEND_DIR))
+# --- ensure project root (parent of src/) is in sys.path ---
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
+# --- now safe to import blueprints from routes/ ---
+from src.routes.reverse_routes import reverse_bp
+from src.routes.deepfake_routes import deepfake_bp
+
+# Try to import optional preload helpers (non-fatal if they don't exist)
+try:
+    from src.inference.deepfake.df_detect import _load_model as _preload_deepfake_model
+except Exception:
+    _preload_deepfake_model = None
+
+try:
+    from src.inference.revEng.df_revEng import _load_model as _preload_reveng_model
+except Exception:
+    _preload_reveng_model = None
 
 
-from flask import Flask
-
-def create_app():
+def create_app(preload_models: bool = True):
+    """
+    Flask app factory – scalable for multiple modules.
+    Set preload_models=False if you don't want model loading attempted at startup.
+    """
     app = Flask(__name__)
 
-    # Register blueprints
-    from src.routes.deepfake_routes import deepfake_bp
-    from src.routes.reverse_routes import reverse_bp
-    from src.routes.emotion_routes import emotion_bp
+    # Register blueprints here
+    app.register_blueprint(reverse_bp, url_prefix="/reveng")
+    app.register_blueprint(deepfake_bp, url_prefix="/detect")
 
-    app.register_blueprint(deepfake_bp, url_prefix="/deepfake")
-    app.register_blueprint(reverse_bp, url_prefix="/reverse")
-    app.register_blueprint(emotion_bp, url_prefix="/emotion")
-
+    # Health check route
     @app.route("/health", methods=["GET"])
-    def health():
-        return {"status": "ok", "root": str(Path(__file__).resolve().parents[2])}
+    def health_check():
+        return jsonify({"status": "ok"}), 200
+
+    # Configure logger for startup messages
+    logger = logging.getLogger(__name__)
+
+    # Optionally preload models (lazy by default). Wrap in try/except so app still starts if models fail.
+    if preload_models:
+        if _preload_deepfake_model is not None:
+            try:
+                _preload_deepfake_model()
+                logger.info("Preloaded deepfake model at startup.")
+            except Exception as e:
+                logger.warning("Deepfake model preload failed (will lazy-load on first request): %s", e)
+
+        if _preload_reveng_model is not None:
+            try:
+                _preload_reveng_model()
+                logger.info("Preloaded revEng model at startup.")
+            except Exception as e:
+                logger.warning("RevEng model preload failed (will lazy-load on first request): %s", e)
 
     return app
 
+
+# --- main entry point ---
 if __name__ == "__main__":
-    app = create_app()
-    # For local dev only. Use gunicorn for production.
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    # Basic logging configuration for dev
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+
+    app = create_app(preload_models=True)
+
+    # Host on all interfaces for dev/testing
+    port = int(os.getenv("PORT", 5000))
+    debug = os.getenv("FLASK_DEBUG", "1") == "1"
+
+    logging.getLogger(__name__).info(f"Starting Flask app on port {port} (debug={debug}) ...")
+    app.run(host="0.0.0.0", port=port, debug=debug)
