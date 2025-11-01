@@ -297,12 +297,15 @@ function SegmentsTable({ segments, onSeek }) {
   const [expanded, setExpanded] = useState(null);
 
   const colorMap = {
-    neutral: '#93C5FD',
-    admiration: '#FDE68A',
-    annoyance: '#FCA5A5',
-    approval: '#60A5FA',
-    love: '#FB7185',
-    curiosity: '#C7F9CC',
+    neutral: '#60A5FA',     // soft cyan-blue
+    admiration: '#FBBF24',  // golden amber
+    annoyance: '#F87171',   // coral red
+    approval: '#34D399',    // mint green
+    love: '#FB7185',        // rose pink
+    curiosity: '#A78BFA',   // violet
+    fearful: '#F43F5E',     // vivid magenta-red
+    surprised: '#38BDF8',   // bright sky blue
+    sad: '#37dfb2ff',         // muted blue-gray
   };
 
   const rows = useMemo(() => {
@@ -558,16 +561,47 @@ export default function EmotionCard() {
   }, []);
 
   const colorMap = {
-    neutral: '#93C5FD',
-    admiration: '#FDE68A',
-    annoyance: '#FCA5A5',
-    approval: '#60A5FA',
-    love: '#FB7185',
-    curiosity: '#C7F9CC',
+    neutral: '#60A5FA',     // soft cyan-blue
+    admiration: '#FBBF24',  // golden amber
+    annoyance: '#F87171',   // coral red
+    approval: '#34D399',    // mint green
+    love: '#FB7185',        // rose pink
+    curiosity: '#A78BFA',   // violet
+    fearful: '#F43F5E',     // vivid magenta-red
+    surprised: '#38BDF8',   // bright sky blue
+    sad: '#94A3B8',         // muted blue-gray
   };
 
   const waveform = mockData?.audioWaveform;
 
+  // --- convert emotionIntensities -> linegraph shape ----
+  const convertEmotionIntensities = (ei) => {
+    if (!ei || !ei.frames) return { video: '', top_emotions: [], data: [] };
+    const times = ei.frames.time || [];
+    const ints = ei.frames.intensities || [];
+    const emotions = ei.emotions || [];
+
+    // build `data` array: { time: <num>, emo1: <val>, emo2: <val>, ... }
+    const data = times.map((t, i) => {
+      const row = { time: Number(t) };
+      const vals = ints[i] || [];
+      emotions.forEach((e, k) => {
+        row[e.toLowerCase().trim()] = Number(vals[k] ?? 0);
+      });
+      return row;
+    });
+
+    // keep top_emotions normalized (lowercase keys to match conversion)
+    const top_emotions = emotions.map((e) => e.toLowerCase().trim());
+
+    return {
+      video: mockData.video || '',
+      top_emotions,
+      data,
+    };
+  };
+
+  const emotionIntensitiesLinegraph = useMemo(() => convertEmotionIntensities(mockData.emotionIntensities), []);
 
   // placeholder seek handler (integration point)
   const handleSeek = (t) => {
@@ -681,9 +715,12 @@ export default function EmotionCard() {
                   />
                 </ComposedChart>
               </ResponsiveContainer>
+              <div className="mt-4">
+                <EmotionLineGraph linegraphData={emotionIntensitiesLinegraph} colorMap={colorMap} />
+              </div>
+              
             </div>
           )}
-
 
         {active === 'video' && <div className="text-slate-400 text-sm">Video analysis results will appear here.</div>}
 

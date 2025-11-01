@@ -25,9 +25,8 @@ const mockData = {
       `Further investigation recommended for borderline cases.`,
   },
 
-  // Emotion section now includes the provided linegraph-ready data + segments table
+  // Existing Emotion Section
   emotion: {
-    // timeline: points for the line graph
     timeline: [
       { time: 0.0, neutral: 0.3353, admiration: 0.1504, annoyance: 0.0 },
       { time: 2.0, neutral: 0.3201, admiration: 0.1054, annoyance: 0.0686 },
@@ -39,12 +38,10 @@ const mockData = {
       { time: 15.0, neutral: 0.1738, admiration: 0.0939, annoyance: 0.0 },
       { time: 20.5, neutral: 0.3371, admiration: 0.0853, annoyance: 0.0 },
     ],
-    // schema hint for UI/components
     schema: {
       fields: ['timestamp', 'emotion', 'confidence'],
       timestampFormat: 'HH:mm:ss',
     },
-    // linegraph payload (ready to feed to chart component)
     linegraph: {
       video: 'eddiewoo',
       top_emotions: ['neutral', 'admiration', 'annoyance'],
@@ -60,8 +57,6 @@ const mockData = {
         { time: 20.5, neutral: 0.3371, admiration: 0.0853, annoyance: 0.0 },
       ],
     },
-
-    // segments: detailed table rows for the UI table (added)
     segments: [
       {
         start: 0.0,
@@ -138,7 +133,7 @@ const mockData = {
     ],
   },
 
-  // New section for acoustic waveform
+  // Acoustic waveform (existing)
   audioWaveform: {
     meta: {
       sr: 16000,
@@ -152,12 +147,60 @@ const mockData = {
     },
     frames: {
       time: [
-        0.0, 2.3, 4.6, 6.9, 9.2, 11.5, 13.8, 16.1, 18.4, 20.7, 23.0, 25.3, 27.6, 29.9, 32.2,
-        34.5, 36.8, 39.1, 41.4, 43.7, 46.0, 48.3, 50.6, 52.9, 55.2,
+        0.0, 2.3, 4.6, 6.9, 9.2, 11.5, 13.8, 16.1, 18.4, 20.7, 23.0, 25.3, 27.6,
+        29.9, 32.2, 34.5, 36.8, 39.1, 41.4, 43.7, 46.0, 48.3, 50.6, 52.9, 55.2,
       ],
       envelope: [
-        0.13, 0.56, 0.48, 0.78, 0.41, 0.28, 0.17, 0.30, 0.40, 0.12, 0.18, 0.23, 0.31, 0.46, 0.54,
-        0.38, 0.24, 0.15, 0.28, 0.36, 0.52, 0.44, 0.22, 0.17, 0.13,
+        0.13, 0.56, 0.48, 0.78, 0.41, 0.28, 0.17, 0.3, 0.4, 0.12, 0.18, 0.23, 0.31,
+        0.46, 0.54, 0.38, 0.24, 0.15, 0.28, 0.36, 0.52, 0.44, 0.22, 0.17, 0.13,
+      ],
+    },
+  },
+
+  // 🆕 New Section: Emotion Intensities over Time (from your JSON)
+  emotionIntensities: {
+    meta: {
+      sr: 16000,
+      hop_length: 512,
+      frame_duration: 0.032,
+      num_frames: 25,
+    },
+    axes: {
+      x_label: 'Time (s)',
+      y_label: 'Intensity (0..1)',
+    },
+    emotions: ['fearful', 'surprised', 'sad'],
+    frames: {
+      time: [
+        0.0, 2.3, 4.6, 6.9, 9.2, 11.5, 13.8, 16.1, 18.4, 20.7, 23.0, 25.3, 27.6,
+        29.9, 32.2, 34.5, 36.8, 39.1, 41.4, 43.7, 46.0, 48.3, 50.6, 52.9, 55.2,
+      ],
+      intensities: [
+        [0.34, 0.312, 0.134],
+        [0.36, 0.3, 0.14],
+        [0.38, 0.29, 0.15],
+        [0.42, 0.27, 0.15],
+        [0.5, 0.24, 0.16],
+        [0.58, 0.2, 0.18],
+        [0.62, 0.18, 0.2],
+        [0.6, 0.2, 0.2],
+        [0.55, 0.24, 0.21],
+        [0.48, 0.3, 0.22],
+        [0.44, 0.35, 0.21],
+        [0.4, 0.38, 0.2],
+        [0.36, 0.4, 0.21],
+        [0.34, 0.42, 0.24],
+        [0.32, 0.45, 0.23],
+        [0.3, 0.47, 0.23],
+        [0.28, 0.48, 0.24],
+        [0.3, 0.46, 0.24],
+        [0.33, 0.43, 0.24],
+        [0.37, 0.38, 0.25],
+        [0.42, 0.33, 0.25],
+        [0.46, 0.3, 0.24],
+        [0.44, 0.29, 0.25],
+        [0.4, 0.3, 0.26],
+        [0.36, 0.32, 0.27],
       ],
     },
   },
