@@ -4,13 +4,32 @@ import EmotionCard from '../components/EmotionCard';
 import ReverseEngCard from '../components/ReverseEngCard';
 import Sidebar from '../components/Sidebar';
 
-
 export default function ResultsPage({ data, analysisOptions, onReset }) {
-//   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [activeTab, setActiveTab] = useState(
+    analysisOptions.deepfake
+      ? 'deepfake'
+      : analysisOptions.emotion
+      ? 'emotion'
+      : 'reverseEng'
+  );
+
+  const renderActiveTab = () => {
+    switch (activeTab) {
+      case 'deepfake':
+        return analysisOptions.deepfake && <DeepfakeCard data={data.deepfake} />;
+      case 'emotion':
+        return analysisOptions.emotion && <EmotionCard data={data.emotion} />;
+      case 'reverseEng':
+        return analysisOptions.reverseEng && <ReverseEngCard data={data.reverseEng} />;
+      default:
+        return null;
+    }
+  };
 
   return (
     <div className="max-w-8xl mx-auto flex flex-col lg:flex-row gap-6">
-        <main className="flex-grow lg:max-w-[calc(100%-18rem)] space-y-8">
+      <main className="flex-grow lg:max-w-[calc(100%-18rem)] space-y-8">
+        {/* Overall Verdict Section */}
         <section>
           <div className="bg-slate-800 rounded-lg p-6 flex items-center justify-between">
             <div>
@@ -28,23 +47,52 @@ export default function ResultsPage({ data, analysisOptions, onReset }) {
           </div>
         </section>
 
-        {analysisOptions.deepfake && (
-          <DeepfakeCard data={data.deepfake} />
-        )}
+        {/* Tabs */}
+        <div className="flex border-b border-slate-700 space-x-4 px-2">
+          {analysisOptions.deepfake && (
+            <button
+              className={`py-2 px-4 rounded-t-md font-semibold transition-colors ${
+                activeTab === 'deepfake'
+                  ? 'bg-slate-700 text-white'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+              onClick={() => setActiveTab('deepfake')}
+            >
+              Deepfake
+            </button>
+          )}
+          {analysisOptions.emotion && (
+            <button
+              className={`py-2 px-4 rounded-t-md font-semibold transition-colors ${
+                activeTab === 'emotion'
+                  ? 'bg-slate-700 text-white'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+              onClick={() => setActiveTab('emotion')}
+            >
+              Emotion
+            </button>
+          )}
+          {analysisOptions.reverseEng && (
+            <button
+              className={`py-2 px-4 rounded-t-md font-semibold transition-colors ${
+                activeTab === 'reverseEng'
+                  ? 'bg-slate-700 text-white'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+              onClick={() => setActiveTab('reverseEng')}
+            >
+              Reverse Engineering
+            </button>
+          )}
+        </div>
 
-        {analysisOptions.emotion && (
-          <EmotionCard data={data.emotion} />
-        )}
-
-        {analysisOptions.reverseEng && (
-          <ReverseEngCard data={data.reverseEng} />
-        )}
+        {/* Active Tab Content */}
+        <div className="mt-4">{renderActiveTab()}</div>
       </main>
 
       {/* Sidebar only on desktop */}
-      <aside
-        className={`hidden lg:flex flex-col w-72 bg-slate-800 rounded-lg p-6 sticky top-6 self-start transition-transform duration-300 `}
-      >
+      <aside className="hidden lg:flex flex-col w-72 bg-slate-800 rounded-lg p-6 sticky top-6 self-start">
         <Sidebar
           verdict={data?.verdict}
           onExport={() => alert('Export functionality to be implemented')}

@@ -1,6 +1,6 @@
 const mockData = {
   verdict: {
-    status: 'fake', // or 'real'
+    status: 'fake',
     confidence: 0.82,
     summary:
       'The uploaded media is very likely to be a deepfake based on frame-level analysis and artifact detection.',
@@ -12,31 +12,11 @@ const mockData = {
       'The system analyzed 120 frames and detected visual artifacts consistent with deepfake manipulations.',
     confidence: 0.82,
     frames: [
-      {
-        id: 1,
-        imageUrl: 'https://placekitten.com/200/120',
-        score: 0.95,
-      },
-      {
-        id: 2,
-        imageUrl: 'https://placekitten.com/201/120',
-        score: 0.88,
-      },
-      {
-        id: 3,
-        imageUrl: 'https://placekitten.com/202/120',
-        score: 0.75,
-      },
-      {
-        id: 4,
-        imageUrl: 'https://placekitten.com/203/120',
-        score: 0.15,
-      },
-      {
-        id: 5,
-        imageUrl: 'https://placekitten.com/204/120',
-        score: 0.45,
-      },
+      { id: 1, imageUrl: 'https://placekitten.com/200/120', score: 0.95 },
+      { id: 2, imageUrl: 'https://placekitten.com/201/120', score: 0.88 },
+      { id: 3, imageUrl: 'https://placekitten.com/202/120', score: 0.75 },
+      { id: 4, imageUrl: 'https://placekitten.com/203/120', score: 0.15 },
+      { id: 5, imageUrl: 'https://placekitten.com/204/120', score: 0.45 },
     ],
     explanation:
       `Deepfake artifacts are identified by inconsistent lighting and unnatural facial texture in multiple frames.\n` +
@@ -45,34 +25,15 @@ const mockData = {
       `Further investigation recommended for borderline cases.`,
   },
 
+  // Emotion section reset for reinitialization
   emotion: {
-    timeline: [
-      {
-        timestamp: '00:00:02',
-        emotion: 'Neutral',
-        confidence: 0.85,
-      },
-      {
-        timestamp: '00:00:05',
-        emotion: 'Surprise',
-        confidence: 0.67,
-      },
-      {
-        timestamp: '00:00:08',
-        emotion: 'Fear',
-        confidence: 0.72,
-      },
-      {
-        timestamp: '00:00:11',
-        emotion: 'Sadness',
-        confidence: 0.60,
-      },
-      {
-        timestamp: '00:00:15',
-        emotion: 'Neutral',
-        confidence: 0.90,
-      },
-    ],
+    // empty timeline ready for reinitialization
+    timeline: [],
+    // metadata or schema hint for UI/components
+    schema: {
+      fields: ['timestamp', 'emotion', 'confidence'],
+      timestampFormat: 'HH:mm:ss', // UI hint
+    },
   },
 
   reverseEng: {
