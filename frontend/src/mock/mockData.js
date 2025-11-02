@@ -25,7 +25,7 @@ const mockData = {
       `Further investigation recommended for borderline cases.`,
   },
 
-  revEng: {
+  reverseEng: {
     result: {
       all_probs: {
         DeepFakeDetection: 0.08096712827682495,
