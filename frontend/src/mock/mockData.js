@@ -25,6 +25,96 @@ const mockData = {
       `Further investigation recommended for borderline cases.`,
   },
 
+  revEng: {
+    result: {
+      all_probs: {
+        DeepFakeDetection: 0.08096712827682495,
+        Deepfakes: 0.35939571261405945,
+        Face2Face: 0.2339722365140915,
+        FaceSwap: 0.23401771485805511,
+        NeuralTextures: 0.09164723008871078
+      },
+      confidence: 0.35939571261405945,
+      predicted_label: "Deepfakes"
+    },
+    status: "success"
+  },
+
+  revEngModels: {
+    df_models_desc: [
+      {
+        name: "DeepFakes",
+        type: "Neural face-swapping (autoencoder-based)",
+        source: "Community deepfake software (early open-source implementation)",
+        introduced: 2018,
+        description:
+          "DeepFakes is one of the earliest and most iconic deepfake generation techniques, built on a pair of autoencoder-decoder networks sharing a common encoder. The method learns to represent facial features and expressions from both source and target identities in a shared latent space. Each identity has its own decoder that reconstructs the person’s facial details from this shared representation. During inference, a source face is encoded through the common encoder and then decoded using the target’s decoder, effectively transferring the source’s expression, pose, and motion onto the target’s identity. The resulting swapped face is then composited back into the target frame using post-processing methods such as color correction and seamless blending. Despite being relatively simple, this approach marked the beginning of the modern deepfake era, enabling realistic face-swaps purely through neural network learning rather than explicit geometry. It often suffers from visible artifacts or boundary mismatches, but its simplicity and effectiveness made it the basis for many later, more advanced variants.",
+        key_characteristics: [
+          "Neural autoencoder-decoder based face swapping",
+          "No explicit 3D modeling; purely data-driven",
+          "Often leaves edge artifacts or inconsistent lighting",
+          "Formed the foundation of the deepfake ecosystem"
+        ]
+      },
+      {
+        name: "Face2Face",
+        type: "Classical computer graphics-based facial reenactment",
+        authors: "Thies et al.",
+        introduced: 2016,
+        description:
+          "Face2Face is a real-time facial reenactment system that transfers the expressions and mouth movements of a source actor onto a target video while preserving the target’s identity. It relies on fitting a parametric 3D morphable model (3DMM) to both the source and target faces. The system tracks facial landmarks and expression parameters for each frame, mapping the source’s expression coefficients onto the target’s model to synthesize a new target face with the desired expressions. This manipulated face is then re-rendered, seamlessly blended into the original video, and adjusted for illumination consistency. Unlike neural methods, Face2Face is purely graphics-based, depending on geometric alignment and rendering rather than deep learning. The technique is remarkably effective for real-time reenactment, but it tends to produce visible inconsistencies when faces rotate sharply, are partially occluded, or when lighting varies dramatically. It demonstrated early on that expressive face manipulation could be achieved interactively, paving the way for neural and hybrid approaches that followed.",
+        key_characteristics: [
+          "Graphics-based approach using 3D morphable models",
+          "Real-time facial expression transfer",
+          "Preserves target identity while modifying expressions",
+          "May struggle with occlusion, lighting, or extreme poses"
+        ]
+      },
+      {
+        name: "FaceSwap",
+        type: "Traditional graphics-based face-swapping",
+        source: "Open-source faceswap tool (non-deep learning)",
+        introduced: 2016,
+        description:
+          "FaceSwap is a classical, non-neural face-swapping approach that uses geometric alignment and image compositing to replace one person’s face with another. It begins by detecting facial landmarks in both the source and target images or frames, estimating 3D head poses to align faces accurately in orientation and scale. The source face is then warped to match the target’s pose and lighting using 3D morphable models and affine transformations. After alignment, the source texture is blended into the target frame using color correction, edge feathering, and seamless cloning techniques to ensure a natural appearance. Since FaceSwap does not rely on machine learning, it requires no training data, making it simple and efficient for direct application. However, the results can appear less realistic compared to neural methods, especially under challenging lighting conditions or complex facial motions. It serves as a foundational, graphics-based benchmark for face manipulation, highlighting the differences between traditional compositing and modern deepfake synthesis.",
+        key_characteristics: [
+          "Classical computer graphics method with 3D model fitting",
+          "Requires no neural network training",
+          "Sensitive to pose and lighting mismatches",
+          "Useful as a non-neural baseline for comparison"
+        ]
+      },
+      {
+        name: "NeuralTextures",
+        type: "Neural rendering and texture-based manipulation",
+        authors: "Thies et al.",
+        introduced: 2019,
+        description:
+          "NeuralTextures represents a hybrid approach that blends the principles of 3D modeling with neural rendering to achieve highly realistic and temporally coherent facial manipulations. The technique introduces the concept of 'neural textures'—learnable high-dimensional texture maps that store latent information about a person’s facial appearance, such as skin details, reflectance, and lighting characteristics. A convolutional neural network (CNN) acts as a rendering engine that synthesizes realistic output frames based on these learned textures and driving parameters such as expression and pose. During training, the neural texture and rendering network jointly learn to reproduce real video frames of a target actor, effectively building a person-specific generative model. At inference time, the system can manipulate or reenact the target face using new expressions derived from another actor or parametric model. The resulting videos are often extremely realistic and difficult to detect visually, as the neural rendering process can capture subtle appearance changes like lighting shifts and wrinkles. However, this realism comes at a computational cost, requiring substantial training data and resources. NeuralTextures stands as one of the most sophisticated and photorealistic manipulation techniques in the FaceForensics++ suite.",
+        key_characteristics: [
+          "Combines 3D geometry with neural rendering",
+          "Learns neural textures encoding facial details and lighting",
+          "Produces highly realistic and temporally stable outputs",
+          "Computationally heavy and data-intensive"
+        ]
+      },
+      {
+        name: "DeepFakeDetection (DFD)",
+        type: "Neural face-swapping (multiple architectures)",
+        source: "Google / Jigsaw DeepFake Detection Dataset (DFD)",
+        introduced: 2020,
+        description:
+          "The DeepFakeDetection (DFD) subset incorporated into FaceForensics++ comes from Google and Jigsaw’s DeepFake Detection Dataset, which was designed to support the DeepFake Detection Challenge (DFDC). Unlike the other FF++ methods that are tied to specific algorithms, DFD includes manipulated videos generated by multiple proprietary and undisclosed deepfake models developed by Google researchers. The dataset was produced using professional actors recorded under controlled conditions, ensuring consistent lighting, framing, and high video quality. The resulting face-swapped videos exhibit fewer visible artifacts compared to the original DeepFakes, representing a new generation of more sophisticated and less detectable manipulations. The DFD subset plays a critical role in FaceForensics++ as an 'unseen domain' for evaluating the generalization capability of deepfake detection models. By incorporating DFD, the extended version of FaceForensics++ provides a broader and more realistic benchmark for assessing how detection algorithms perform on manipulations that differ in architecture and visual style from the ones used during training.",
+        key_characteristics: [
+          "Integrates Google’s DFD dataset into FF++",
+          "Contains videos generated by several advanced deepfake architectures",
+          "High-quality, realistic manipulations with minimal artifacts",
+          "Serves as an unseen test set for evaluating deepfake detectors"
+        ]
+      }
+    ]
+  },
+
   // Existing Emotion Section
   emotion: {
     timeline: [
