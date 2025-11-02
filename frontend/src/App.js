@@ -28,7 +28,7 @@ export default function App() {
       const mockResults = require('./mock/mockData').default;
       setResultData(mockResults);
       setAppState(APP_STATES.RESULTS);
-    }, 3000);
+    }, 8000);
   };
 
   const resetApp = () => {
@@ -40,7 +40,7 @@ export default function App() {
   return (
     <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 font-inter">
       {/* Header */}
-      <header className="p-5 border-b border-slate-800 flex justify-between items-center backdrop-blur-sm sticky top-0 z-50 bg-slate-950/80">
+      <header className="p-5 border-b border-slate-800 flex justify-between items-center sticky top-0 z-50 bg-slate-950 shadow-md">
         <div
           onClick={() => setAppState(APP_STATES.UPLOAD)}
           className="cursor-pointer select-none"
@@ -48,9 +48,6 @@ export default function App() {
           <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-400 via-purple-400 to-indigo-300 text-transparent bg-clip-text hover:opacity-90 transition">
             AffectForensics
           </h1>
-          <p className="text-slate-400 text-xs md:text-sm mt-1">
-            Deepfake detection, reverse engineering, and emotion manipulation analysis for synthetic media integrity.
-          </p>
         </div>
 
         <nav className="flex items-center space-x-8 text-sm font-medium">

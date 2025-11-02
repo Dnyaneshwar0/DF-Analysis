@@ -7,12 +7,13 @@ import parthImg from '../assests/team/parth.jpg';
 import aishwaryaImg from '../assests/team/aishwarya.jpg';
 import mithileshImg from '../assests/team/mithilesh.jpg';
 
-export default function AboutUs({ siteName = 'Deepfake & Emotion Analyzer' }) {
+export default function AboutUs({ siteName = 'AffectForensics' }) {
   return (
     <section className="max-w-6xl mx-auto p-10 bg-slate-900 rounded-2xl shadow-lg text-slate-100">
-      <header className="mb-8 text-center">
-        <h1 className="text-4xl font-semibold leading-tight">{siteName}</h1>
-
+      <header className="mb-10 text-center">
+        <h1 className="text-4xl font-extrabold bg-gradient-to-r from-indigo-400 via-purple-400 to-indigo-300 text-transparent bg-clip-text">
+          {siteName}
+        </h1>
       </header>
 
       <div className="space-y-10">
@@ -20,11 +21,12 @@ export default function AboutUs({ siteName = 'Deepfake & Emotion Analyzer' }) {
         <section className="bg-slate-800 p-8 rounded-xl border border-slate-700 shadow-md">
           <h2 className="text-2xl font-semibold mb-3 text-slate-100">Project Overview</h2>
           <p className="text-slate-300 text-lg leading-relaxed">
-            This project, developed as part of our third-year Mini Project at Sardar Patel Institute of Technology, Mumbai,
-            integrates <span className="text-slate-100 font-medium">multimedia forensics</span> and{' '}
-            <span className="text-slate-100 font-medium">affective computing</span> to analyze deepfake content and its
-            emotional manipulation intent. Our system not only detects deepfakes but also evaluates their psychological impact
-            using emotion recognition and sentiment correlation pipelines.
+            AffectForensics is our third-year Mini Project at Sardar Patel Institute of Technology, Mumbai.
+            It merges <span className="text-slate-100 font-medium">deepfake forensics</span>,{' '}
+            <span className="text-slate-100 font-medium">reverse engineering</span>, and{' '}
+            <span className="text-slate-100 font-medium">emotional manipulation analysis</span> into a unified platform.
+            The system identifies synthetic media, traces its generative model and dataset characteristics, and assesses
+            emotional intent using facial and linguistic cues.
           </p>
         </section>
 
@@ -33,11 +35,11 @@ export default function AboutUs({ siteName = 'Deepfake & Emotion Analyzer' }) {
           <h2 className="text-2xl font-semibold text-slate-100 mb-6">Project Credits</h2>
           <p className="text-slate-400 mb-8 italic text-lg">
             We would like to express our sincere gratitude to our mentor,{' '}
-            <span className="text-slate-100 font-medium">Dr. Renuka Pawar</span>, for her constant guidance, invaluable
-            insights, and unwavering support throughout this project.
+            <span className="text-slate-100 font-medium">Dr. Renuka Pawar</span>, for her invaluable guidance,
+            insights, and unwavering support throughout the development of this project.
           </p>
 
-          {/* Mentor card centered */}
+          {/* Mentor Card */}
           <div className="flex justify-center mb-10">
             <div className="p-8 bg-slate-800 rounded-xl border border-indigo-400 shadow-lg w-80 hover:shadow-indigo-500/30 transition">
               <div className="flex flex-col items-center">
@@ -62,7 +64,7 @@ export default function AboutUs({ siteName = 'Deepfake & Emotion Analyzer' }) {
             </div>
           </div>
 
-          {/* Student cards below mentor */}
+          {/* Student Cards */}
           <div className="grid gap-8 md:grid-cols-3 justify-items-center">
             {/* Parth */}
             <div className="p-6 bg-slate-800 rounded-xl border border-slate-700 w-72 shadow-md hover:shadow-indigo-400/20 transition">
@@ -131,7 +133,7 @@ export default function AboutUs({ siteName = 'Deepfake & Emotion Analyzer' }) {
               <div className="flex flex-col items-center">
                 <img
                   src={mithileshImg}
-                  alt="Mithilesh Deshkmukh"
+                  alt="Mithilesh Deshmukh"
                   className="w-20 h-20 rounded-full object-cover mb-3 border border-slate-600 hover:border-indigo-400 transition"
                 />
                 <div className="font-medium text-lg text-slate-100">Mithilesh Deshkmukh</div>
@@ -173,7 +175,7 @@ export default function AboutUs({ siteName = 'Deepfake & Emotion Analyzer' }) {
         </section>
 
         <footer className="text-sm text-slate-500 text-center mt-10">
-          Legal: Our tools estimate expressions and vocal affect; they do not substitute professional judgement.
+          Legal: AffectForensics estimates expressions, generative origins, and emotional intent — it does not substitute professional judgement.
         </footer>
       </div>
     </section>
