@@ -8,7 +8,7 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-# --- now safe to import blueprints from routes/ ---
+# --- import blueprints from routes ---
 from src.routes.reverse_routes import reverse_bp
 from src.routes.deepfake_routes import deepfake_bp
 
@@ -23,7 +23,6 @@ try:
 except Exception:
     _preload_reveng_model = None
 
-
 def create_app(preload_models: bool = True):
     """
     Flask app factory – scalable for multiple modules.
@@ -32,7 +31,9 @@ def create_app(preload_models: bool = True):
     app = Flask(__name__)
 
     # Register blueprints here
+    # Reverse engineering endpoints
     app.register_blueprint(reverse_bp, url_prefix="/reveng")
+    # Deepfake detection endpoints
     app.register_blueprint(deepfake_bp, url_prefix="/detect")
 
     # Health check route
@@ -45,22 +46,21 @@ def create_app(preload_models: bool = True):
 
     # Optionally preload models (lazy by default). Wrap in try/except so app still starts if models fail.
     if preload_models:
+        # Preload deepfake model
         if _preload_deepfake_model is not None:
             try:
                 _preload_deepfake_model()
                 logger.info("Preloaded deepfake model at startup.")
             except Exception as e:
                 logger.warning("Deepfake model preload failed (will lazy-load on first request): %s", e)
-
+        # Preload revEng model
         if _preload_reveng_model is not None:
             try:
                 _preload_reveng_model()
                 logger.info("Preloaded revEng model at startup.")
             except Exception as e:
                 logger.warning("RevEng model preload failed (will lazy-load on first request): %s", e)
-
     return app
-
 
 # --- main entry point ---
 if __name__ == "__main__":
