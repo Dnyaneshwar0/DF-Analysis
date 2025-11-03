@@ -11,10 +11,10 @@ import {
   CartesianGrid,
   LabelList,
 } from 'recharts';
-import mockData from '../mock/mockData';
+import revEngModels from '../mock/revEngModels.json';
 
 export default function ReverseEngCard({
-  data = mockData.reverseEng,
+  data,
   animationMs = 900,
   gauge: gaugeProps = {},
 }) {
@@ -26,8 +26,8 @@ export default function ReverseEngCard({
       </section>
     );
   }
-
-  const { result = {}, df_models_desc = [] } = data;
+  
+  const { result = {} } = data;
   const { all_probs = {}, predicted_label = '', confidence = 0 } = result;
 
   const probs = useMemo(() => {
@@ -42,13 +42,13 @@ export default function ReverseEngCard({
   );
 
   const predictedDetails = useMemo(() => {
-    if (!predicted_label || !Array.isArray(df_models_desc)) return null;
-    return (
-      df_models_desc.find(
-        (m) => String(m.name).toLowerCase() === String(predicted_label).toLowerCase()
-      ) || null
-    );
-  }, [predicted_label, df_models_desc]);
+  if (!predicted_label) return null;
+  return (
+    revEngModels.find(
+      (m) => String(m.name).toLowerCase() === String(predicted_label).toLowerCase()
+    ) || null
+  );
+}, [predicted_label]);
 
   // ---------- Gauge styling (kept from original) ----------
   const gradientStops = ['#22d3ee', '#8b5cf6', '#a855f7'];
@@ -362,13 +362,13 @@ export default function ReverseEngCard({
               <div className="flex items-baseline justify-between">
                 <div>
                  <div className="px-3 py-2 rounded-lg border border-indigo-500/40 bg-slate-900/40 shadow-sm">
-  <div className="text-2xl font-semibold text-indigo-300 tracking-wide">
-    {predictedDetails.name}
-  </div>
-  <div className="text-xl text-slate-400 italic mt-0.5">
-    {predictedDetails.type}
-  </div>
-</div>
+                  <div className="text-2xl font-bold text-indigo-300 tracking-wide">
+                    {predictedDetails.name}
+                  </div>
+                  <div className="text-lg text-slate-400 italic mt-0.5">
+                    {predictedDetails.type}
+                  </div>
+                </div>
 
                 </div>
                 
