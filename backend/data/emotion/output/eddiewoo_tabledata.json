@@ -11,11 +11,11 @@
         "approval"
       ],
       "intensities": [
-        0.3353,
-        0.1504,
-        0.0813
+        0.3374,
+        0.1262,
+        0.0708
       ],
-      "confidence": 0.3353
+      "confidence": 0.3374
     },
     {
       "start": 2.0,
@@ -27,11 +27,11 @@
         "annoyance"
       ],
       "intensities": [
-        0.3201,
-        0.1054,
-        0.0686
+        0.3537,
+        0.1034,
+        0.064
       ],
-      "confidence": 0.3201
+      "confidence": 0.3537
     },
     {
       "start": 6.0,
@@ -43,11 +43,11 @@
         "approval"
       ],
       "intensities": [
-        0.386,
-        0.0974,
-        0.0737
+        0.3683,
+        0.0985,
+        0.064
       ],
-      "confidence": 0.386
+      "confidence": 0.3683
     },
     {
       "start": 11.0,
@@ -59,11 +59,11 @@
         "annoyance"
       ],
       "intensities": [
-        0.3293,
-        0.0829,
-        0.0732
+        0.3313,
+        0.0867,
+        0.0756
       ],
-      "confidence": 0.3293
+      "confidence": 0.3313
     },
     {
       "start": 12.0,
@@ -91,11 +91,11 @@
         "annoyance"
       ],
       "intensities": [
-        0.2924,
-        0.0923,
-        0.0605
+        0.2937,
+        0.0968,
+        0.0632
       ],
-      "confidence": 0.2924
+      "confidence": 0.2937
     },
     {
       "start": 13.0,
@@ -107,27 +107,27 @@
         "annoyance"
       ],
       "intensities": [
-        0.3293,
-        0.0829,
-        0.0732
+        0.3313,
+        0.0867,
+        0.0756
       ],
-      "confidence": 0.3293
+      "confidence": 0.3313
     },
     {
       "start": 15.0,
       "end": 19.5,
       "text": "i'm proud to declared love mathematics",
       "emotions": [
-        "love",
         "neutral",
+        "love",
         "admiration"
       ],
       "intensities": [
-        0.2275,
-        0.1738,
-        0.0939
+        0.2034,
+        0.1821,
+        0.1003
       ],
-      "confidence": 0.2275
+      "confidence": 0.2034
     },
     {
       "start": 20.5,
@@ -139,11 +139,11 @@
         "curiosity"
       ],
       "intensities": [
-        0.3371,
-        0.0853,
-        0.0714
+        0.3337,
+        0.0859,
+        0.0708
       ],
-      "confidence": 0.3371
+      "confidence": 0.3337
     }
   ]
 }

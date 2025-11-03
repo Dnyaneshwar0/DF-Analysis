@@ -5,7 +5,7 @@
       "text": "one a the golden ratio is a mathematical reality",
       "start": 0.0,
       "end": 2.0,
-      "conf": 0.3353320045601565,
+      "conf": 0.33735548890657285,
       "note": "cleaned",
       "emotions": [
         "neutral",
@@ -13,16 +13,16 @@
         "approval"
       ],
       "probs": {
-        "neutral": 0.3353320045601565,
-        "admiration": 0.15037255066373234,
-        "approval": 0.08131653306711925
+        "neutral": 0.33735548890657285,
+        "admiration": 0.12619530375348428,
+        "approval": 0.07084245880231811
       }
     },
     {
       "text": "one a that like facts you can find everywhere",
       "start": 2.0,
       "end": 6.0,
-      "conf": 0.3201074020136258,
+      "conf": 0.3537440138566615,
       "note": "cleaned",
       "emotions": [
         "neutral",
@@ -30,16 +30,16 @@
         "annoyance"
       ],
       "probs": {
-        "neutral": 0.3201074020136258,
-        "admiration": 0.10544825585022023,
-        "annoyance": 0.06858320788758539
+        "neutral": 0.3537440138566615,
+        "admiration": 0.10339847086037077,
+        "annoyance": 0.06400491358351806
       }
     },
     {
       "text": "from the changes of your fingers to the pillars of the parthenon",
       "start": 6.0,
       "end": 11.0,
-      "conf": 0.385998946993577,
+      "conf": 0.3683458037932393,
       "note": "cleaned",
       "emotions": [
         "neutral",
@@ -47,16 +47,16 @@
         "approval"
       ],
       "probs": {
-        "neutral": 0.385998946993577,
-        "admiration": 0.09742060120716732,
-        "approval": 0.0736512874794373
+        "neutral": 0.3683458037932393,
+        "admiration": 0.0984943796367713,
+        "approval": 0.06402936881408057
       }
     },
     {
       "text": "that's why even at a party of 5000 people",
       "start": 11.0,
       "end": 12.0,
-      "conf": 0.32926951745724276,
+      "conf": 0.33125769570196173,
       "note": "cleaned",
       "emotions": [
         "neutral",
@@ -64,9 +64,9 @@
         "annoyance"
       ],
       "probs": {
-        "neutral": 0.32926951745724276,
-        "admiration": 0.08293530208122574,
-        "annoyance": 0.07324214994959809
+        "neutral": 0.33125769570196173,
+        "admiration": 0.0866769781885112,
+        "annoyance": 0.07563976260087008
       }
     },
     {
@@ -90,7 +90,7 @@
       "text": "that's even at a poverty of 50 5000 penplelf",
       "start": 12.5,
       "end": 13.0,
-      "conf": 0.2923873362859283,
+      "conf": 0.2937440885141381,
       "note": "cleaned",
       "emotions": [
         "neutral",
@@ -98,16 +98,16 @@
         "annoyance"
       ],
       "probs": {
-        "neutral": 0.2923873362859283,
-        "admiration": 0.09234135644096901,
-        "annoyance": 0.06045724464303628
+        "neutral": 0.2937440885141381,
+        "admiration": 0.0967723979628937,
+        "annoyance": 0.06316049803228456
       }
     },
     {
       "text": "that's why even at a party of 5000 people",
       "start": 13.0,
       "end": 15.0,
-      "conf": 0.32926951745724276,
+      "conf": 0.33125769570196173,
       "note": "cleaned",
       "emotions": [
         "neutral",
@@ -115,33 +115,33 @@
         "annoyance"
       ],
       "probs": {
-        "neutral": 0.32926951745724276,
-        "admiration": 0.08293530208122574,
-        "annoyance": 0.07324214994959809
+        "neutral": 0.33125769570196173,
+        "admiration": 0.0866769781885112,
+        "annoyance": 0.07563976260087008
       }
     },
     {
       "text": "i'm proud to declared love mathematics",
       "start": 15.0,
       "end": 19.5,
-      "conf": 0.227454677746144,
+      "conf": 0.2033618786813256,
       "note": "cleaned;concatenated",
       "emotions": [
-        "love",
         "neutral",
+        "love",
         "admiration"
       ],
       "probs": {
-        "love": 0.227454677746144,
-        "neutral": 0.17381821354951432,
-        "admiration": 0.09388742698311456
+        "neutral": 0.2033618786813256,
+        "love": 0.1821177549872265,
+        "admiration": 0.10031184691678548
       }
     },
     {
       "text": "will seal a we",
       "start": 20.5,
       "end": 21.5,
-      "conf": 0.33713874060651305,
+      "conf": 0.33366301152999267,
       "note": "cleaned;concatenated",
       "emotions": [
         "neutral",
@@ -149,9 +149,9 @@
         "curiosity"
       ],
       "probs": {
-        "neutral": 0.33713874060651305,
-        "admiration": 0.08532741541659583,
-        "curiosity": 0.07141333033189452
+        "neutral": 0.33366301152999267,
+        "admiration": 0.08589107680657658,
+        "curiosity": 0.07076684692274947
       }
     }
   ]

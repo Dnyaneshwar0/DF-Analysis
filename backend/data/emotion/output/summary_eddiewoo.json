@@ -1,0 +1,107 @@
+{
+  "video": "eddiewoo.mp4",
+  "duration_s": 21.59,
+  "dominant_emotion": "Neutral",
+  "timeline": [
+    {
+      "t": 0.03,
+      "emo": "Uncertain",
+      "conf": 0.0
+    },
+    {
+      "t": 1.1,
+      "emo": "Neutral",
+      "conf": 0.559
+    },
+    {
+      "t": 2.17,
+      "emo": "Sad",
+      "conf": 0.973
+    },
+    {
+      "t": 3.23,
+      "emo": "Sad",
+      "conf": 0.851
+    },
+    {
+      "t": 4.3,
+      "emo": "Neutral",
+      "conf": 0.985
+    },
+    {
+      "t": 5.36,
+      "emo": "Happy",
+      "conf": 0.998
+    },
+    {
+      "t": 6.43,
+      "emo": "Neutral",
+      "conf": 0.714
+    },
+    {
+      "t": 7.5,
+      "emo": "Angry",
+      "conf": 0.753
+    },
+    {
+      "t": 8.56,
+      "emo": "Neutral",
+      "conf": 0.693
+    },
+    {
+      "t": 9.63,
+      "emo": "Happy",
+      "conf": 0.999
+    },
+    {
+      "t": 10.69,
+      "emo": "Sad",
+      "conf": 0.922
+    },
+    {
+      "t": 11.76,
+      "emo": "Happy",
+      "conf": 0.999
+    },
+    {
+      "t": 12.83,
+      "emo": "Neutral",
+      "conf": 0.635
+    },
+    {
+      "t": 13.89,
+      "emo": "Surprise",
+      "conf": 0.604
+    },
+    {
+      "t": 14.96,
+      "emo": "Neutral",
+      "conf": 0.648
+    },
+    {
+      "t": 16.02,
+      "emo": "Surprise",
+      "conf": 0.678
+    },
+    {
+      "t": 17.09,
+      "emo": "Angry",
+      "conf": 0.962
+    },
+    {
+      "t": 18.16,
+      "emo": "Sad",
+      "conf": 0.954
+    },
+    {
+      "t": 19.22,
+      "emo": "Happy",
+      "conf": 0.999
+    },
+    {
+      "t": 20.29,
+      "emo": "Neutral",
+      "conf": 0.997
+    }
+  ]
+}
