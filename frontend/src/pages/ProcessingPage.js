@@ -2,26 +2,51 @@ import React, { useEffect, useState } from 'react';
 import { FaCheckCircle, FaSpinner, FaCircle } from 'react-icons/fa';
 
 const STEPS = [
-  'Extracting frames & audio',
-  'Running deepfake detection',
-  'Running emotion analysis',
-  'Running reverse engineering',
-  'Finalizing results',
+  { key: 'extract', label: 'Extracting frames & audio' },
+  { key: 'deepfake', label: 'Running deepfake detection' },
+  { key: 'emotion', label: 'Running emotion analysis' },
+  { key: 'reverseEng', label: 'Running reverse engineering' },
+  { key: 'finalize', label: 'Finalizing results' },
 ];
 
-export default function ProcessingPage({ fileName = 'Unknown File' }) {
+export default function ProcessingPage({ fileName = 'Unknown File', modelStatus }) {
   const [currentStep, setCurrentStep] = useState(0);
 
   // Controlled progress simulation — will advance until all steps complete
   useEffect(() => {
-    if (currentStep >= STEPS.length) return;
-    const interval = setInterval(() => {
-      setCurrentStep((prev) => (prev < STEPS.length ? prev + 1 : prev));
-    }, 1200);
-    return () => clearInterval(interval);
-  }, [currentStep]);
+    // Automatically advance visual progress based on modelStatus
+    const completedSteps = STEPS.filter((step) => {
+      if (step.key === 'reverseEng') return modelStatus.reverseEng === 'done';
+      if (step.key === 'deepfake') return modelStatus.deepfake === 'done';
+      if (step.key === 'emotion') return modelStatus.emotion === 'done';
+      if (step.key === 'extract') return true; // instant
+      if (step.key === 'finalize')
+        return (
+          modelStatus.deepfake === 'done' &&
+          modelStatus.emotion === 'done' &&
+          modelStatus.reverseEng === 'done'
+        );
+      return false;
+    }).length;
 
-  const progress = Math.min((currentStep / STEPS.length) * 100, 100);
+    setCurrentStep(completedSteps);
+
+    // --- handle auto-redirect when all steps done ---
+    const allDone =
+      modelStatus.deepfake === 'done' &&
+      modelStatus.emotion === 'done' &&
+      modelStatus.reverseEng === 'done';
+
+    if (allDone) {
+      const timeout = setTimeout(() => {
+        const event = new CustomEvent('processingComplete');
+        window.dispatchEvent(event);
+      }, 1500); // small delay for UX
+      return () => clearTimeout(timeout);
+    }
+  }, [modelStatus]);
+
+  const progress = ((currentStep / STEPS.length) * 100).toFixed(1);
 
   return (
     <section className="max-w-4xl mx-auto p-10 bg-slate-900 border border-slate-800 rounded-2xl shadow-xl text-slate-100">
@@ -45,7 +70,7 @@ export default function ProcessingPage({ fileName = 'Unknown File' }) {
           const active = idx === currentStep && currentStep < STEPS.length;
           return (
             <li
-              key={step}
+              key={step.key}
               className={`flex items-center space-x-4 p-3 rounded-lg border transition-all duration-300 ${
                 completed
                   ? 'border-green-700 bg-slate-800 text-green-300'
@@ -68,7 +93,7 @@ export default function ProcessingPage({ fileName = 'Unknown File' }) {
                   active ? 'font-semibold animate-pulse' : ''
                 }`}
               >
-                {step}
+                {step.label}
               </span>
             </li>
           );

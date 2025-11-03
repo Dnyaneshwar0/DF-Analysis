@@ -19,17 +19,58 @@ export default function App() {
     emotion: true,
     reverseEng: true,
   });
-  const [resultData, setResultData] = useState(null);
 
-  const startAnalysis = () => {
-    if (!uploadedFile) return;
-    setAppState(APP_STATES.PROCESSING);
-    setTimeout(() => {
-      const mockResults = require('./mock/mockData').default;
-      setResultData(mockResults);
-      setAppState(APP_STATES.RESULTS);
-    }, 8000);
-  };
+  const [resultData, setResultData] = useState(null);
+  const [modelStatus, setModelStatus] = useState({
+  deepfake: 'done',   // mock
+  emotion: 'done',    // mock
+  reverseEng: 'pending', // real model call
+});
+
+
+  const startAnalysis = async () => {
+  if (!uploadedFile) return;
+  setAppState(APP_STATES.PROCESSING);
+
+  // Mark model states at the start
+  setModelStatus({
+    deepfake: 'done',   // mocked, so instantly complete
+    emotion: 'done',    // mocked, so instantly complete
+    reverseEng: 'running', // real analysis starts
+  });
+
+  try {
+    const formData = new FormData();
+    formData.append('file', uploadedFile);
+
+    // Call your Flask backend
+    const response = await fetch('http://localhost:5000/reveng/analyze', {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) throw new Error('Failed to analyze video');
+
+    const reverseData = await response.json();
+
+    // Update model state to show it’s complete
+    setModelStatus((prev) => ({ ...prev, reverseEng: 'done' }));
+
+    // Combine with mock data for now
+    const mockResults = require('./mock/mockData').default;
+    const finalResults = { ...mockResults, reverseEng: reverseData };
+
+    setResultData(finalResults);
+
+    // Move to results page
+    setAppState(APP_STATES.RESULTS);
+  } catch (error) {
+    console.error('Error:', error);
+    setModelStatus((prev) => ({ ...prev, reverseEng: 'error' }));
+    alert('Something went wrong while analyzing the video.');
+    setAppState(APP_STATES.UPLOAD);
+  }
+};
 
   const resetApp = () => {
     setUploadedFile(null);
@@ -88,7 +129,10 @@ export default function App() {
         )}
 
         {appState === APP_STATES.PROCESSING && (
-          <ProcessingPage fileName={uploadedFile?.name || ''} />
+          <ProcessingPage
+            fileName={uploadedFile?.name || ''}
+            modelStatus={modelStatus}
+          />
         )}
 
         {appState === APP_STATES.RESULTS && (
