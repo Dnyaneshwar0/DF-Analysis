@@ -4,6 +4,7 @@
   "private": true,
   "description": "Deepfake Detection, Emotion Analysis, and Reverse Engineering Webapp",
   "scripts": {
+    "dev": "react-scripts start",
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test --env=jsdom",
@@ -11,10 +12,18 @@
   },
   "dependencies": {
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "react-icons": "^5.5.0",
+    "recharts": "^3.3.0"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.0",
     "autoprefixer": "^10.4.14",
+    "eslint": "^8.57.1",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "globals": "^16.5.0",
     "postcss": "^8.4.24",
     "react-scripts": "5.0.1",
     "tailwindcss": "^3.3.2"

@@ -1,0 +1,158 @@
+{
+  "video": "eddiewoo",
+  "segments": [
+    {
+      "text": "one a the golden ratio is a mathematical reality",
+      "start": 0.0,
+      "end": 2.0,
+      "conf": 0.3353320045601565,
+      "note": "cleaned",
+      "emotions": [
+        "neutral",
+        "admiration",
+        "approval"
+      ],
+      "probs": {
+        "neutral": 0.3353320045601565,
+        "admiration": 0.15037255066373234,
+        "approval": 0.08131653306711925
+      }
+    },
+    {
+      "text": "one a that like facts you can find everywhere",
+      "start": 2.0,
+      "end": 6.0,
+      "conf": 0.3201074020136258,
+      "note": "cleaned",
+      "emotions": [
+        "neutral",
+        "admiration",
+        "annoyance"
+      ],
+      "probs": {
+        "neutral": 0.3201074020136258,
+        "admiration": 0.10544825585022023,
+        "annoyance": 0.06858320788758539
+      }
+    },
+    {
+      "text": "from the changes of your fingers to the pillars of the parthenon",
+      "start": 6.0,
+      "end": 11.0,
+      "conf": 0.385998946993577,
+      "note": "cleaned",
+      "emotions": [
+        "neutral",
+        "admiration",
+        "approval"
+      ],
+      "probs": {
+        "neutral": 0.385998946993577,
+        "admiration": 0.09742060120716732,
+        "approval": 0.0736512874794373
+      }
+    },
+    {
+      "text": "that's why even at a party of 5000 people",
+      "start": 11.0,
+      "end": 12.0,
+      "conf": 0.32926951745724276,
+      "note": "cleaned",
+      "emotions": [
+        "neutral",
+        "admiration",
+        "annoyance"
+      ],
+      "probs": {
+        "neutral": 0.32926951745724276,
+        "admiration": 0.08293530208122574,
+        "annoyance": 0.07324214994959809
+      }
+    },
+    {
+      "text": "people",
+      "start": 12.0,
+      "end": 12.5,
+      "conf": 0.44714739119489616,
+      "note": "cleaned",
+      "emotions": [
+        "neutral",
+        "admiration",
+        "annoyance"
+      ],
+      "probs": {
+        "neutral": 0.44714739119489616,
+        "admiration": 0.09111682598387685,
+        "annoyance": 0.07054355487772562
+      }
+    },
+    {
+      "text": "that's even at a poverty of 50 5000 penplelf",
+      "start": 12.5,
+      "end": 13.0,
+      "conf": 0.2923873362859283,
+      "note": "cleaned",
+      "emotions": [
+        "neutral",
+        "admiration",
+        "annoyance"
+      ],
+      "probs": {
+        "neutral": 0.2923873362859283,
+        "admiration": 0.09234135644096901,
+        "annoyance": 0.06045724464303628
+      }
+    },
+    {
+      "text": "that's why even at a party of 5000 people",
+      "start": 13.0,
+      "end": 15.0,
+      "conf": 0.32926951745724276,
+      "note": "cleaned",
+      "emotions": [
+        "neutral",
+        "admiration",
+        "annoyance"
+      ],
+      "probs": {
+        "neutral": 0.32926951745724276,
+        "admiration": 0.08293530208122574,
+        "annoyance": 0.07324214994959809
+      }
+    },
+    {
+      "text": "i'm proud to declared love mathematics",
+      "start": 15.0,
+      "end": 19.5,
+      "conf": 0.227454677746144,
+      "note": "cleaned;concatenated",
+      "emotions": [
+        "love",
+        "neutral",
+        "admiration"
+      ],
+      "probs": {
+        "love": 0.227454677746144,
+        "neutral": 0.17381821354951432,
+        "admiration": 0.09388742698311456
+      }
+    },
+    {
+      "text": "will seal a we",
+      "start": 20.5,
+      "end": 21.5,
+      "conf": 0.33713874060651305,
+      "note": "cleaned;concatenated",
+      "emotions": [
+        "neutral",
+        "admiration",
+        "curiosity"
+      ],
+      "probs": {
+        "neutral": 0.33713874060651305,
+        "admiration": 0.08532741541659583,
+        "curiosity": 0.07141333033189452
+      }
+    }
+  ]
+}

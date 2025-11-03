@@ -2,49 +2,35 @@ import React, { useState } from 'react';
 import UploadPage from './pages/UploadPage';
 import ResultsPage from './pages/ResultsPage';
 import ProcessingPage from './pages/ProcessingPage';
+import AboutUs from './pages/AboutUs';
 
-// Constants to manage app states
 const APP_STATES = {
   UPLOAD: 'upload',
   PROCESSING: 'processing',
   RESULTS: 'results',
+  ABOUT: 'about',
 };
 
-/**
- * Root App component controlling main app flow
- */
 export default function App() {
-  // State to manage current app phase
   const [appState, setAppState] = useState(APP_STATES.UPLOAD);
-
-  // File uploaded by user (File object)
   const [uploadedFile, setUploadedFile] = useState(null);
-
-  // Analysis options selected by user
   const [analysisOptions, setAnalysisOptions] = useState({
     deepfake: true,
     emotion: true,
     reverseEng: true,
   });
-
-  // Mock result data (would come from backend in real app)
   const [resultData, setResultData] = useState(null);
 
-  // Handler for starting analysis
   const startAnalysis = () => {
     if (!uploadedFile) return;
     setAppState(APP_STATES.PROCESSING);
-
-    // Simulate backend processing with timeout
     setTimeout(() => {
-      // TODO: Replace with real API call
       const mockResults = require('./mock/mockData').default;
       setResultData(mockResults);
       setAppState(APP_STATES.RESULTS);
-    }, 3000);
+    }, 8000);
   };
 
-  // Handler for resetting app to initial state
   const resetApp = () => {
     setUploadedFile(null);
     setResultData(null);
@@ -52,16 +38,45 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-900 text-slate-100">
+    <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 font-inter">
       {/* Header */}
-      <header className="p-4 border-b border-slate-700">
-        <h1 className="text-3xl font-extrabold glow-indigo select-none">
-          Deepfake & Emotion Analyzer
-        </h1>
+      <header className="p-5 border-b border-slate-800 flex justify-between items-center sticky top-0 z-50 bg-slate-950 shadow-md">
+        <div
+          onClick={() => setAppState(APP_STATES.UPLOAD)}
+          className="cursor-pointer select-none"
+        >
+          <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-400 via-purple-400 to-indigo-300 text-transparent bg-clip-text hover:opacity-90 transition">
+            AffectForensics
+          </h1>
+        </div>
+
+        <nav className="flex items-center space-x-8 text-sm font-medium">
+          <button
+            onClick={() => setAppState(APP_STATES.UPLOAD)}
+            className={`transition ${
+              appState === APP_STATES.UPLOAD
+                ? 'text-indigo-400 border-b-2 border-indigo-400 pb-1'
+                : 'text-slate-300 hover:text-indigo-400'
+            }`}
+          >
+            Home
+          </button>
+
+          <button
+            onClick={() => setAppState(APP_STATES.ABOUT)}
+            className={`transition ${
+              appState === APP_STATES.ABOUT
+                ? 'text-indigo-400 border-b-2 border-indigo-400 pb-1'
+                : 'text-slate-300 hover:text-indigo-400'
+            }`}
+          >
+            About Us
+          </button>
+        </nav>
       </header>
 
-      {/* Main Content */}
-      <main className="flex-grow p-6 max-w-7xl mx-auto w-full">
+      {/* Main */}
+      <main className="flex-grow p-6 md:p-10 max-w-6xl mx-auto w-full">
         {appState === APP_STATES.UPLOAD && (
           <UploadPage
             uploadedFile={uploadedFile}
@@ -73,9 +88,7 @@ export default function App() {
         )}
 
         {appState === APP_STATES.PROCESSING && (
-          <ProcessingPage
-            fileName={uploadedFile?.name || ''}
-          />
+          <ProcessingPage fileName={uploadedFile?.name || ''} />
         )}
 
         {appState === APP_STATES.RESULTS && (
@@ -85,11 +98,15 @@ export default function App() {
             onReset={resetApp}
           />
         )}
+
+        {appState === APP_STATES.ABOUT && <AboutUs />}
       </main>
 
       {/* Footer */}
-      <footer className="p-4 border-t border-slate-700 text-sm text-slate-500 text-center select-none">
-        &copy; 2025 ampm - Deepfake Detection & Emotional Analysis
+      <footer className="p-5 border-t border-slate-800 text-center text-xs md:text-sm text-slate-500 select-none bg-slate-950/90 backdrop-blur">
+        <p>
+          &copy; 2025 <span className="text-indigo-400 font-medium">ampm</span> AffectForensics
+        </p>
       </footer>
     </div>
   );

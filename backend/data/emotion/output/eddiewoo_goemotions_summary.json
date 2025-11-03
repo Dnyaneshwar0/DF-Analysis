@@ -1,0 +1,12 @@
+{
+  "video": "eddiewoo",
+  "dominant_emotion": "neutral",
+  "emotion_distribution": {
+    "neutral": 0.3278298966798552,
+    "admiration": 0.09797611518979196,
+    "approval": 0.017218646727395173,
+    "annoyance": 0.03845203414528261,
+    "love": 0.02527274197179378,
+    "curiosity": 0.007934814481321613
+  }
+}
