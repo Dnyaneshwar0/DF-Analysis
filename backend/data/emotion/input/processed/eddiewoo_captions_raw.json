@@ -1,0 +1,306 @@
+{
+  "video": "eddiewoo",
+  "frames": [
+    {
+      "image": "/home/ampm/projects/DF-Analysis/backend/data/emotion/input/processed/tmp/eddiewoo/frame_00001.jpg",
+      "timestamp": 0.0,
+      "raw_text": "OYONEV a SB\n\nThe golden ratio is a mathematical reality",
+      "text": "one a the golden ratio is a mathematical reality",
+      "conf": 1.0
+    },
+    {
+      "image": "/home/ampm/projects/DF-Analysis/backend/data/emotion/input/processed/tmp/eddiewoo/frame_00002.jpg",
+      "timestamp": 0.5,
+      "raw_text": "OYONEV ha\n\nThe golden ratio is a mathematical reality",
+      "text": "one the golden ratio is a mathematical reality",
+      "conf": 1.0
+    },
+    {
+      "image": "/home/ampm/projects/DF-Analysis/backend/data/emotion/input/processed/tmp/eddiewoo/frame_00003.jpg",
+      "timestamp": 1.0,
+      "raw_text": "OYONEV ae eS Se\n\nThe golden ratio is a mathematical reality",
+      "text": "one the golden ratio is a mathematical reality",
+      "conf": 1.0
+    },
+    {
+      "image": "/home/ampm/projects/DF-Analysis/backend/data/emotion/input/processed/tmp/eddiewoo/frame_00004.jpg",
+      "timestamp": 1.5,
+      "raw_text": "OYONEV in, ea:\n\nThe golden ratio is a mathematical reality",
+      "text": "one in the golden ratio is a mathematical reality",
+      "conf": 1.0
+    },
+    {
+      "image": "/home/ampm/projects/DF-Analysis/backend/data/emotion/input/processed/tmp/eddiewoo/frame_00005.jpg",
+      "timestamp": 2.0,
+      "raw_text": "OYONEV a 5\n\nthat, like fractals,\nyou can find everywhere -",
+      "text": "one a that like facts you can find everywhere",
+      "conf": 1.0
+    },
+    {
+      "image": "/home/ampm/projects/DF-Analysis/backend/data/emotion/input/processed/tmp/eddiewoo/frame_00006.jpg",
+      "timestamp": 2.5,
+      "raw_text": "oyOnev\n\nthat, like fractals,\nyou can find everywhere -\n\ney",
+      "text": "one that like facts you can find everywhere",
+      "conf": 1.0
+    },
+    {
+      "image": "/home/ampm/projects/DF-Analysis/backend/data/emotion/input/processed/tmp/eddiewoo/frame_00007.jpg",
+      "timestamp": 3.0,
+      "raw_text": "oyoneyv\n\nthat, like fractals,\nyou can find everywhere -",
+      "text": "one that like facts you can find everywhere",
+      "conf": 1.0
+    },
+    {
+      "image": "/home/ampm/projects/DF-Analysis/backend/data/emotion/input/processed/tmp/eddiewoo/frame_00008.jpg",
+      "timestamp": 3.5,
+      "raw_text": "OYyOneV ie\n\nthat, like fractals,\nyou can find everywhere -",
+      "text": "one that like facts you can find everywhere",
+      "conf": 1.0
+    },
+    {
+      "image": "/home/ampm/projects/DF-Analysis/backend/data/emotion/input/processed/tmp/eddiewoo/frame_00009.jpg",
+      "timestamp": 4.0,
+      "raw_text": "— ayonev\n\nthat, like fractals,\nyou can find everywhere -\n\n&",
+      "text": "anyone that like facts you can find everywhere",
+      "conf": 1.0
+    },
+    {
+      "image": "/home/ampm/projects/DF-Analysis/backend/data/emotion/input/processed/tmp/eddiewoo/frame_00010.jpg",
+      "timestamp": 4.5,
+      "raw_text": "oyoneyv\n\nthat, like fractals,\nyou can find everywhere -",
+      "text": "one that like facts you can find everywhere",
+      "conf": 1.0
+    },
+    {
+      "image": "/home/ampm/projects/DF-Analysis/backend/data/emotion/input/processed/tmp/eddiewoo/frame_00011.jpg",
+      "timestamp": 5.0,
+      "raw_text": ": oyonev = 7 A Bt™= |\n\nthat, like fractals,\nyou can find everywhere -",
+      "text": "one a that like facts you can find everywhere",
+      "conf": 1.0
+    },
+    {
+      "image": "/home/ampm/projects/DF-Analysis/backend/data/emotion/input/processed/tmp/eddiewoo/frame_00012.jpg",
+      "timestamp": 5.5,
+      "raw_text": "OYONEV a, “ie 4 ~ ane\n\nthat, like fractals,\nyou can find everywhere -",
+      "text": "one a lane that like facts you can find everywhere",
+      "conf": 1.0
+    },
+    {
+      "image": "/home/ampm/projects/DF-Analysis/backend/data/emotion/input/processed/tmp/eddiewoo/frame_00013.jpg",
+      "timestamp": 6.0,
+      "raw_text": "ee, \\- ul 4 Y >\n\n“© from the phalanges of your fingers |\n_to the pillars of the Parthenon. NS",
+      "text": "from the changes of your fingers to the pillars of the parthenon",
+      "conf": 1.0
+    },
+    {
+      "image": "/home/ampm/projects/DF-Analysis/backend/data/emotion/input/processed/tmp/eddiewoo/frame_00014.jpg",
+      "timestamp": 6.5,
+      "raw_text": "~ -h 6\nens from the phalanges of your fingers\nto the pillars of the Parthenon. ~~",
+      "text": "ends from the changes of your fingers to the pillars of the parthenon",
+      "conf": 1.0
+    },
+    {
+      "image": "/home/ampm/projects/DF-Analysis/backend/data/emotion/input/processed/tmp/eddiewoo/frame_00015.jpg",
+      "timestamp": 7.0,
+      "raw_text": "a i - @.@\n\n».« from the phalanges of your fingers y, NN te.\n- to ) the pillars of the Parthenon. ~N Lr\n\n———",
+      "text": "a i from the changes of your fingers to the pillars of the parthenon",
+      "conf": 1.0
+    },
+    {
+      "image": "/home/ampm/projects/DF-Analysis/backend/data/emotion/input/processed/tmp/eddiewoo/frame_00016.jpg",
+      "timestamp": 7.5,
+      "raw_text": "from the phalanges of your fingers\nto the pillars of the Parthenon.",
+      "text": "from the changes of your fingers to the pillars of the parthenon",
+      "conf": 1.0
+    },
+    {
+      "image": "/home/ampm/projects/DF-Analysis/backend/data/emotion/input/processed/tmp/eddiewoo/frame_00017.jpg",
+      "timestamp": 8.0,
+      "raw_text": "from the phalanges of your fingers\nto the pillars of the Parthenon.",
+      "text": "from the changes of your fingers to the pillars of the parthenon",
+      "conf": 1.0
+    },
+    {
+      "image": "/home/ampm/projects/DF-Analysis/backend/data/emotion/input/processed/tmp/eddiewoo/frame_00018.jpg",
+      "timestamp": 8.5,
+      "raw_text": "from the phalanges of your fingers\nto the pillars of the Parthenon.",
+      "text": "from the changes of your fingers to the pillars of the parthenon",
+      "conf": 1.0
+    },
+    {
+      "image": "/home/ampm/projects/DF-Analysis/backend/data/emotion/input/processed/tmp/eddiewoo/frame_00019.jpg",
+      "timestamp": 9.0,
+      "raw_text": "from the phalanges of your fingers\nto the pillars of the Parthenon.",
+      "text": "from the changes of your fingers to the pillars of the parthenon",
+      "conf": 1.0
+    },
+    {
+      "image": "/home/ampm/projects/DF-Analysis/backend/data/emotion/input/processed/tmp/eddiewoo/frame_00020.jpg",
+      "timestamp": 9.5,
+      "raw_text": "from the phalanges of your fingers\nto the pillars of the Parthenon.",
+      "text": "from the changes of your fingers to the pillars of the parthenon",
+      "conf": 1.0
+    },
+    {
+      "image": "/home/ampm/projects/DF-Analysis/backend/data/emotion/input/processed/tmp/eddiewoo/frame_00021.jpg",
+      "timestamp": 10.0,
+      "raw_text": "from the phalanges of your fingers\nto the pillars of the Parthenon.",
+      "text": "from the changes of your fingers to the pillars of the parthenon",
+      "conf": 1.0
+    },
+    {
+      "image": "/home/ampm/projects/DF-Analysis/backend/data/emotion/input/processed/tmp/eddiewoo/frame_00022.jpg",
+      "timestamp": 10.5,
+      "raw_text": "from the phalanges of your fingers\nto the pillars of the Parthenon.",
+      "text": "from the changes of your fingers to the pillars of the parthenon",
+      "conf": 1.0
+    },
+    {
+      "image": "/home/ampm/projects/DF-Analysis/backend/data/emotion/input/processed/tmp/eddiewoo/frame_00023.jpg",
+      "timestamp": 11.0,
+      "raw_text": "That's why even at < a party of 5000 people, _ '",
+      "text": "that's why even at a party of 5000 people",
+      "conf": 1.0
+    },
+    {
+      "image": "/home/ampm/projects/DF-Analysis/backend/data/emotion/input/processed/tmp/eddiewoo/frame_00024.jpg",
+      "timestamp": 11.5,
+      "raw_text": "x\n“That's why even at a party of ! 5000 people, aa",
+      "text": "that's why even at a party of 5000 people",
+      "conf": 1.0
+    },
+    {
+      "image": "/home/ampm/projects/DF-Analysis/backend/data/emotion/input/processed/tmp/eddiewoo/frame_00025.jpg",
+      "timestamp": 12.0,
+      "raw_text": "eople,",
+      "text": "people",
+      "conf": 1.0
+    },
+    {
+      "image": "/home/ampm/projects/DF-Analysis/backend/data/emotion/input/processed/tmp/eddiewoo/frame_00026.jpg",
+      "timestamp": 12.5,
+      "raw_text": "That's ay even at a sperty of 50 5000 penplelf",
+      "text": "that's even at a poverty of 50 5000 penplelf",
+      "conf": 1.0
+    },
+    {
+      "image": "/home/ampm/projects/DF-Analysis/backend/data/emotion/input/processed/tmp/eddiewoo/frame_00027.jpg",
+      "timestamp": 13.0,
+      "raw_text": "That's why even at a party of 5000 people,",
+      "text": "that's why even at a party of 5000 people",
+      "conf": 0.6291650073894771
+    },
+    {
+      "image": "/home/ampm/projects/DF-Analysis/backend/data/emotion/input/processed/tmp/eddiewoo/frame_00028.jpg",
+      "timestamp": 13.5,
+      "raw_text": "— Ma\n\n——\n\nhe AP> Pt ni) ». aay\nThat's why even at a party of 5000 people,\na",
+      "text": "away that's why even at a party of 5000 people a",
+      "conf": 1.0
+    },
+    {
+      "image": "/home/ampm/projects/DF-Analysis/backend/data/emotion/input/processed/tmp/eddiewoo/frame_00029.jpg",
+      "timestamp": 14.0,
+      "raw_text": "he an a » ,\nThat's why even at a party of 5000 people,\na",
+      "text": "an a that's why even at a party of 5000 people a",
+      "conf": 1.0
+    },
+    {
+      "image": "/home/ampm/projects/DF-Analysis/backend/data/emotion/input/processed/tmp/eddiewoo/frame_00030.jpg",
+      "timestamp": 14.5,
+      "raw_text": "Thats why even at a party of 5000 people,",
+      "text": "thats why even at a party of 5000 people",
+      "conf": 0.8407870894543377
+    },
+    {
+      "image": "/home/ampm/projects/DF-Analysis/backend/data/emotion/input/processed/tmp/eddiewoo/frame_00031.jpg",
+      "timestamp": 15.0,
+      "raw_text": "I'm proud to declare,",
+      "text": "i'm proud to declared",
+      "conf": 1.0
+    },
+    {
+      "image": "/home/ampm/projects/DF-Analysis/backend/data/emotion/input/processed/tmp/eddiewoo/frame_00032.jpg",
+      "timestamp": 15.5,
+      "raw_text": "I'm proud to declare,",
+      "text": "i'm proud to declared",
+      "conf": 1.0
+    },
+    {
+      "image": "/home/ampm/projects/DF-Analysis/backend/data/emotion/input/processed/tmp/eddiewoo/frame_00033.jpg",
+      "timestamp": 16.0,
+      "raw_text": "I'm proud to declare,",
+      "text": "i'm proud to declared",
+      "conf": 1.0
+    },
+    {
+      "image": "/home/ampm/projects/DF-Analysis/backend/data/emotion/input/processed/tmp/eddiewoo/frame_00034.jpg",
+      "timestamp": 16.5,
+      "raw_text": "I'm proud to declare,",
+      "text": "i'm proud to declared",
+      "conf": 1.0
+    },
+    {
+      "image": "/home/ampm/projects/DF-Analysis/backend/data/emotion/input/processed/tmp/eddiewoo/frame_00035.jpg",
+      "timestamp": 17.0,
+      "raw_text": "\"| love mathematics!\"",
+      "text": "love mathematics",
+      "conf": 1.0
+    },
+    {
+      "image": "/home/ampm/projects/DF-Analysis/backend/data/emotion/input/processed/tmp/eddiewoo/frame_00036.jpg",
+      "timestamp": 17.5,
+      "raw_text": "\"| love mathematics!\"\n=e",
+      "text": "love mathematics",
+      "conf": 1.0
+    },
+    {
+      "image": "/home/ampm/projects/DF-Analysis/backend/data/emotion/input/processed/tmp/eddiewoo/frame_00037.jpg",
+      "timestamp": 18.0,
+      "raw_text": "\"| love mathematics!\"\nzz",
+      "text": "love mathematics",
+      "conf": 1.0
+    },
+    {
+      "image": "/home/ampm/projects/DF-Analysis/backend/data/emotion/input/processed/tmp/eddiewoo/frame_00038.jpg",
+      "timestamp": 18.5,
+      "raw_text": "\"| love mathematics!\"\npes",
+      "text": "love mathematics types",
+      "conf": 1.0
+    },
+    {
+      "image": "/home/ampm/projects/DF-Analysis/backend/data/emotion/input/processed/tmp/eddiewoo/frame_00039.jpg",
+      "timestamp": 19.0,
+      "raw_text": "\"| love mathematics!\"\nr 6h}",
+      "text": "love mathematics 6h",
+      "conf": 1.0
+    },
+    {
+      "image": "/home/ampm/projects/DF-Analysis/backend/data/emotion/input/processed/tmp/eddiewoo/frame_00040.jpg",
+      "timestamp": 19.5,
+      "raw_text": "SESS\nRe (Cheers) (Applause) B »",
+      "text": "",
+      "conf": 1.0
+    },
+    {
+      "image": "/home/ampm/projects/DF-Analysis/backend/data/emotion/input/processed/tmp/eddiewoo/frame_00041.jpg",
+      "timestamp": 20.0,
+      "raw_text": "5 — |\n“Re, (Cheers) (Applause) »\n\n—————",
+      "text": "",
+      "conf": 1.0
+    },
+    {
+      "image": "/home/ampm/projects/DF-Analysis/backend/data/emotion/input/processed/tmp/eddiewoo/frame_00042.jpg",
+      "timestamp": 20.5,
+      "raw_text": ">) Re\n‘Wil, (Cheers) (Applause) »",
+      "text": "will",
+      "conf": 1.0
+    },
+    {
+      "image": "/home/ampm/projects/DF-Analysis/backend/data/emotion/input/processed/tmp/eddiewoo/frame_00043.jpg",
+      "timestamp": 21.0,
+      "raw_text": "Seale |\n“TR, (Cheers) (Applause) a | we",
+      "text": "seal a we",
+      "conf": 1.0
+    }
+  ]
+}

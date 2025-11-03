@@ -1,6 +1,0 @@
-start,end,text,labels
-0.0,1.5,"i'm proud to declare,","neutral,admiration,gratitude,annoyance"
-2.0,4.0,"""| love mathematics!""","love,neutral,admiration,gratitude"
-4.5,4.5,"wa ss | “re, (cheers) (applause) » ’","neutral,admiration,annoyance,disapproval"
-5.0,5.0,"“re, (cheers) (applause) z ee !","neutral,admiration,annoyance,disapproval"
-5.5,5.5,"‘wl, (cheers) (applause) »","neutral,admiration,annoyance,approval"
