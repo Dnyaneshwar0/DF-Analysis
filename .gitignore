@@ -4,3 +4,5 @@ package-lock.json
 venv/
 python-3.12.10-embed-amd64/
 get-pip.py
+backend/models/detection/loaded_dataset.npz
+backend/models/detection/loaded_datasetof2.npz

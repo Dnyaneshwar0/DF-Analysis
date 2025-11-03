@@ -28,7 +28,8 @@ def create_app(preload_models: bool = True):
     Flask app factory – scalable for multiple modules.
     Set preload_models=False if you don't want model loading attempted at startup.
     """
-    app = Flask(__name__)
+    app = Flask(__name__, static_url_path='/data', static_folder='data')
+    
 
     # Register blueprints here
     # Reverse engineering endpoints

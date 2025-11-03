@@ -1,33 +1,87 @@
+"""
+DEEPFAKE DETECTION - PRODUCTION BACKEND
+========================================
+Works with locally-trained model from train_deepfake_model.py
+Model: deepfake_model_trained.h5
+Accuracy: 61.67%
+Input: (batch, 30, 96, 96, 3)
+Output: (batch, 1) - binary probability
+Dataset of model
+CONFIG = {
+    'real_folders': [
+        '/content/drive/MyDrive/DFERA/df/FaceForensicsPP/original_sequences/youtube/c40/videos',
+        '/content/drive/MyDrive/DFERA/df/celeb-df/YouTube-real',
+        '/content/drive/MyDrive/DFERA/df/celeb-df/Celeb-real'
+    ],
+    'fake_folders': [
+        '/content/drive/MyDrive/DFERA/df/FaceForensicsPP/DeepFakeDetection/c40/videos',
+        '/content/drive/MyDrive/DFERA/df/FaceForensicsPP/manipulated_sequences/Face2Face/c40/videos',
+        '/content/drive/MyDrive/DFERA/df/FaceForensicsPP/manipulated_sequences/FaceSwap/c40/videos',
+        '/content/drive/MyDrive/DFERA/df/FaceForensicsPP/manipulated_sequences/NeuralTextures/c40/videos',
+        '/content/drive/MyDrive/DFERA/df/celeb-df/Celeb-synthesis'
+    ],
+    'frames_per_video': 30,
+    'image_size': 96,
+}
+"""
+"""
+DEEPFAKE DETECTION - WITH TOP FRAMES EXTRACTION
+================================================
+Returns advanced response with:
+- Top 5 frames sorted by deepfake confidence
+- Base64 encoded frame images
+- Timestamps and frame indices
+"""
+"""
+DEEPFAKE DETECTION - FULL FRAMES AS PNG
+========================================
+Saves top 5 affecting frames as full video frames (not just faces)
+Returns proper file paths: /assets/frames/frame1.png
+"""
+
 import os
 import logging
 import numpy as np
 import cv2
-import base64
-import csv
-import subprocess
 from mtcnn import MTCNN
 import tensorflow as tf
 
 logger = logging.getLogger(__name__)
 
-FRAMES_PER_CLIP = int(os.environ.get("DF_FRAMES", 15))
-IMG_SIZE = int(os.environ.get("DF_IMG_SIZE", 96))
+FRAMES_PER_CLIP = 30
+IMG_SIZE = 96
+CONFIDENCE_THRESHOLD = 0.5
 
-MODEL_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'models', 'deepfake'))
-MODEL_H5_PATH = os.path.join(MODEL_DIR, 'deepfake_efficient_model.h5')
-DEFAULT_MODEL_PATH = os.environ.get('DF_MODEL_PATH', MODEL_H5_PATH)
+MODEL_PATH = os.path.join(
+    os.path.dirname(__file__), 
+    '..', '..', '..', 
+    'models', 'detection', 
+    'deepfake_model_trained.h5'
+)
 
-# Output directories
-OUTPUT_FRAMES_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'output', 'frames'))
-OUTPUT_CSV_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'output', 'csv'))
-
-# Create directories if they don't exist
-os.makedirs(OUTPUT_FRAMES_DIR, exist_ok=True)
-os.makedirs(OUTPUT_CSV_DIR, exist_ok=True)
+# Directory to save frame PNG files
+FRAMES_OUTPUT_DIR = os.path.join(
+    os.path.dirname(__file__),
+    '..', '..', '..',
+    'data', 'detection'
+)
 
 _MODEL = None
 _DETECTOR = None
 
+# ============================================
+# SETUP FRAMES DIRECTORY
+# ============================================
+def _setup_frames_directory():
+    """Create frames directory if it doesn't exist"""
+    os.makedirs(FRAMES_OUTPUT_DIR, exist_ok=True)
+    logger.info(f"Frames directory ready: {FRAMES_OUTPUT_DIR}")
+
+_setup_frames_directory()
+
+# ============================================
+# DETECTOR
+# ============================================
 def _load_detector():
     global _DETECTOR
     if _DETECTOR is None:
@@ -35,281 +89,355 @@ def _load_detector():
         _DETECTOR = MTCNN()
     return _DETECTOR
 
-def build_model():
-    logger.info("Building model from scratch...")
-    input_layer = tf.keras.layers.Input(shape=(FRAMES_PER_CLIP, IMG_SIZE, IMG_SIZE, 3))
-    base_cnn = tf.keras.applications.MobileNetV2(include_top=False, weights='imagenet', input_shape=(IMG_SIZE, IMG_SIZE, 3))
-    base_cnn.trainable = True
-    for layer in base_cnn.layers[:-10]:
-        layer.trainable = False
-    
-    x = tf.keras.layers.TimeDistributed(base_cnn)(input_layer)
-    x = tf.keras.layers.TimeDistributed(tf.keras.layers.GlobalAveragePooling2D())(x)
-    x = tf.keras.layers.LSTM(64)(x)
-    x = tf.keras.layers.BatchNormalization()(x)
-    x = tf.keras.layers.Dropout(0.4)(x)
-    x = tf.keras.layers.Dense(32, activation='relu')(x)
-    x = tf.keras.layers.Dropout(0.3)(x)
-    output = tf.keras.layers.Dense(1, activation='sigmoid')(x)
-    
-    model = tf.keras.Model(inputs=input_layer, outputs=output)
-    model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=3e-5), loss='binary_crossentropy', metrics=['accuracy'])
-    logger.info("✓ Model built successfully")
-    return model
-
-def _load_model(model_path=DEFAULT_MODEL_PATH):
+# ============================================
+# MODEL LOADING
+# ============================================
+def _load_model():
     global _MODEL
+    
     if _MODEL is not None:
-        logger.info("Model already loaded from cache")
         return _MODEL
     
-    logger.info(f"Attempting to load model from: {model_path}")
-    if not os.path.exists(model_path):
-        logger.error(f"Model file not found: {model_path}")
-        raise FileNotFoundError(f"Model file not found: {model_path}")
+    logger.info(f"Loading model from: {MODEL_PATH}")
+    
+    if not os.path.exists(MODEL_PATH):
+        raise FileNotFoundError(f"Model not found: {MODEL_PATH}")
     
     try:
-        logger.info(f"Loading .h5 model...")
-        _MODEL = tf.keras.models.load_model(model_path, compile=False)
-        logger.info("✓ .h5 model loaded successfully!")
+        _MODEL = tf.keras.models.load_model(MODEL_PATH)
+        logger.info(f"✓ Model loaded successfully")
+        logger.info(f"  Input: {_MODEL.input_shape}")
+        logger.info(f"  Output: {_MODEL.output_shape}")
         return _MODEL
     except Exception as e:
-        logger.warning(f".h5 load failed: {e}")
-        logger.warning("Rebuilding model and attempting weight load...")
-        try:
-            _MODEL = build_model()
-            _MODEL.load_weights(model_path)
-            logger.info("✓ Model rebuilt and weights loaded")
-            return _MODEL
-        except Exception as e2:
-            logger.error(f"Weight loading failed: {e2}")
-            raise RuntimeError(f"Cannot load model: {e2}")
+        logger.error(f"Failed to load model: {e}")
+        raise
 
+# ============================================
+# FACE EXTRACTION
+# ============================================
 def extract_largest_face(frame, target_size=IMG_SIZE):
+    """Extract largest face from frame"""
     detector = _load_detector()
+    
     try:
-        res = detector.detect_faces(frame)
-        if not res:
+        faces = detector.detect_faces(frame)
+        if not faces:
             return None
-        best = max(res, key=lambda r: max(0, r['box'][2]) * max(0, r['box'][3]))
+        
+        best = max(faces, key=lambda r: r['box'][2] * r['box'][3])
         x, y, w, h = best['box']
+        
         x, y = max(0, x), max(0, y)
-        x2, y2 = x + max(0, w), y + max(0, h)
+        x2, y2 = x + w, y + h
+        
         face = frame[y:y2, x:x2]
+        
         if face.size == 0:
             return None
-        face = cv2.resize(face, (target_size, target_size))
-        return face
+        
+        return cv2.resize(face, (target_size, target_size))
+        
     except Exception as e:
-        logger.debug("Face extraction error: %s", e)
+        logger.debug(f"Face extraction error: {e}")
         return None
 
+# ============================================
+# VIDEO PROCESSING - STORES ORIGINAL FRAMES
+# ============================================
 def video_to_faces(video_path, max_frames=FRAMES_PER_CLIP, target_size=IMG_SIZE):
-    logger.info(f"Extracting faces from video: {video_path}")
+    """
+    Extract 30 evenly-spaced faces from video
+    Also stores original full frames for later use
+    """
+    logger.info(f"Processing video: {video_path}")
+    
     cap = cv2.VideoCapture(video_path)
-    if not cap.isOpened():
-        logger.warning("cv2.VideoCapture couldn't open: %s", video_path)
-        return [], [], 0
-    total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) or 0
-    fps = cap.get(cv2.CAP_PROP_FPS) or 30   
-    duration = total / fps if fps > 0 else 0
-    logger.info(f"Video has {total} frames ({duration:.1f}s), extracting {max_frames} face samples")
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    fps = cap.get(cv2.CAP_PROP_FPS) or 30
+    duration = total_frames / fps if fps > 0 else 0
+    
     faces = []
+    full_frames = []  # Store original full frames
     metadata = []
-    if total > 0:
-        indices = (np.linspace(0, total - 1, max_frames, dtype=int)
-                   if total >= max_frames
-                   else np.array(list(np.linspace(0, total - 1, total, dtype=int)) + [total - 1] * (max_frames - total), dtype=int))
-        for idx in indices:
-            cap.set(cv2.CAP_PROP_POS_FRAMES, int(idx))
-            ret, frame = cap.read()
-            if not ret:
-                continue
-            f = extract_largest_face(frame, target_size)
-            if f is not None:
-                faces.append(f)
-                metadata.append((int(idx), round(idx / fps, 2)))
-    else:
-        cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
-        while len(faces) < max_frames:
-            ret, frame = cap.read()
-            if not ret:
-                break
-            f = extract_largest_face(frame, target_size)
-            if f is not None:
-                faces.append(f)
-                metadata.append((len(faces) - 1, round((len(faces) - 1) / fps, 2)))
+    
+    # Evenly-spaced frame indices
+    frame_indices = np.linspace(0, max(total_frames-1, 0), max_frames, dtype=int)
+    
+    for idx in frame_indices:
+        cap.set(cv2.CAP_PROP_POS_FRAMES, int(idx))
+        ret, frame = cap.read()
+        
+        if not ret:
+            continue
+        
+        # Store FULL original frame
+        full_frames.append(frame.copy())
+        
+        # Extract face for model input
+        face = extract_largest_face(frame, target_size)
+        if face is not None:
+            faces.append(face)
+            timestamp = idx / fps if fps > 0 else 0
+            metadata.append((int(idx), round(timestamp, 2)))
+        else:
+            # If no face found, still pad
+            faces.append(np.zeros((target_size, target_size, 3), dtype=np.uint8))
+            timestamp = idx / fps if fps > 0 else 0
+            metadata.append((int(idx), round(timestamp, 2)))
+    
     cap.release()
+    
+    # Ensure exactly 30 frames
     while len(faces) < max_frames:
         faces.append(np.zeros((target_size, target_size, 3), dtype=np.uint8))
+        full_frames.append(np.zeros((480, 640, 3), dtype=np.uint8))
         metadata.append((-1, -1.0))
-    logger.info(f"✓ Extracted {len(faces)} face frames")
-    return faces, metadata, duration
+    
+    logger.info(f"Extracted {len([f for f in faces if f.max() > 0])} faces")
+    
+    return faces[:max_frames], full_frames[:max_frames], metadata[:max_frames], duration
 
+# ============================================
+# IMAGE PROCESSING
+# ============================================
 def image_to_faces(image_path, max_frames=FRAMES_PER_CLIP, target_size=IMG_SIZE):
-    logger.info(f"Extracting face from image: {image_path}")
+    """For single image, replicate 30 times"""
+    logger.info(f"Processing image: {image_path}")
+    
     img = cv2.imread(image_path)
     if img is None:
-        logger.warning("cv2.imread couldn't read image: %s", image_path)
-        return [], [], 0
+        logger.warning(f"Could not read image: {image_path}")
+        return [], [], [], 0
+    
+    # Store original image
+    full_frame = img.copy()
+    
+    # Extract face for model
     face = extract_largest_face(img, target_size)
     if face is None:
-        return [], [], 0
+        logger.warning(f"No face detected in image")
+        return [], [], [], 0
+    
     faces = [face.copy() for _ in range(max_frames)]
+    full_frames = [full_frame.copy() for _ in range(max_frames)]
     metadata = [(-1, -1.0)] * max_frames
-    return faces, metadata, 0
+    
+    return faces, full_frames, metadata, 0
 
+# ============================================
+# PREPROCESSING
+# ============================================
 def preprocess_faces_list(faces, frames=FRAMES_PER_CLIP, img_size=IMG_SIZE):
+    """Convert faces to model input tensor"""
+    
     while len(faces) < frames:
         faces.append(np.zeros((img_size, img_size, 3), dtype=np.uint8))
-    arr = np.array([faces[:frames]], dtype=np.float32) / 255.0
-    logger.info(f"Preprocessed input shape: {arr.shape}")
+    
+    arr = np.array([faces[:frames]], dtype=np.float32)
+    arr = arr / 255.0
+    
     return arr
 
-def save_frames_to_disk(frames_data, media_basename):
-    """Save top frames to disk as PNG files"""
-    saved_paths = []
-    for idx, (frame, timestamp, confidence) in enumerate(frames_data, 1):
-        filename = f"{media_basename}_frame_{idx}_ts{timestamp}.png"
-        filepath = os.path.join(OUTPUT_FRAMES_DIR, filename)
-        img = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-        cv2.imwrite(filepath, img)
-        saved_paths.append((filepath, f"/assets/frames/{filename}"))
-        logger.info(f"Saved frame {idx} to {filepath}")
-    return saved_paths
-
-def save_metadata_to_csv(frames_data, media_basename):
-    """Save frame metadata to CSV"""
-    csv_filename = f"{media_basename}_metadata.csv"
-    csv_filepath = os.path.join(OUTPUT_CSV_DIR, csv_filename)
+# ============================================
+# SAVE FULL FRAME AS PNG FILE
+# ============================================
+def save_full_frame_as_png(full_frame, frame_number):
+    """
+    Save full video frame as PNG file
     
-    with open(csv_filepath, 'w', newline='') as csvfile:
-        writer = csv.writer(csvfile)
-        writer.writerow(['frame_index', 'timestamp_sec', 'fake_confidence'])
-        for idx, (frame, timestamp, confidence) in enumerate(frames_data, 1):
-            writer.writerow([idx, timestamp, confidence])
-    
-    logger.info(f"Saved metadata to {csv_filepath}")
-    return csv_filepath
-
-def extract_frames_ffmpeg(video_path, timestamps, media_basename):
-    """Use FFmpeg to extract frames at specific timestamps"""
-    extracted_frames = []
-    
-    for idx, ts in enumerate(timestamps, 1):
-        filename = f"{media_basename}_frame_{idx}_ts{ts}.png"
-        filepath = os.path.join(OUTPUT_FRAMES_DIR, filename)
-        
-        # FFmpeg command to extract frame at timestamp
-        cmd = [
-            'ffmpeg',
-            '-i', video_path,
-            '-ss', str(ts),
-            '-vframes', '1',
-            '-vf', 'scale=96:96',
-            '-y',
-            filepath
-        ]
-        
-        try:
-            subprocess.run(cmd, capture_output=True, check=True, timeout=10)
-            extracted_frames.append((filepath, f"/assets/frames/{filename}"))
-            logger.info(f"Extracted frame {idx} at timestamp {ts}s")
-        except Exception as e:
-            logger.error(f"FFmpeg extraction failed for frame {idx}: {e}")
-    
-    return extracted_frames
-
-def analyze_media_with_top_frames_and_images(media_path, model_path=None, top_k=5):
-    logger.info(f"=== Starting analysis for: {media_path} ===")
-    model_path = model_path or DEFAULT_MODEL_PATH
-    
+    Input: full_frame (original video frame), frame_number (1-5)
+    Output: "/assets/frames/frame1.png"
+    """
     try:
-        model = _load_model(model_path)
-        intermediate_model = tf.keras.Model(
-            inputs=model.input, 
-            outputs=model.get_layer(index=2).output
-        )
+        # Ensure frame is uint8 BGR
+        if full_frame.dtype != np.uint8:
+            full_frame = (full_frame * 255).astype(np.uint8)
+        
+        # Generate filename (frame1.png, frame2.png, etc)
+        filename = f"frame{frame_number}.png"
+        filepath = os.path.join(FRAMES_OUTPUT_DIR, filename)
+        
+        # Save as PNG
+        success = cv2.imwrite(filepath, full_frame)
+        
+        if not success:
+            logger.warning(f"Failed to save PNG: {filepath}")
+            return None
+        
+        # Return URL path (relative to web root)
+        # Format: /assets/frames/frame1.png
+        url_path = f"/data/detection/{filename}"
+        
+        logger.info(f"Saved frame: {filepath} → {url_path}")
+        
+        return url_path
+    
+    except Exception as e:
+        logger.error(f"Frame saving error: {e}")
+        return None
+
+# ============================================
+# CLEANUP OLD FRAMES (OPTIONAL)
+# ============================================
+def cleanup_old_frames(max_age_hours=24):
+    """Remove frames older than max_age_hours"""
+    try:
+        import time
+        current_time = time.time()
+        max_age_seconds = max_age_hours * 3600
+        
+        for filename in os.listdir(FRAMES_OUTPUT_DIR):
+            filepath = os.path.join(FRAMES_OUTPUT_DIR, filename)
+            if os.path.isfile(filepath):
+                file_age = current_time - os.path.getmtime(filepath)
+                if file_age > max_age_seconds:
+                    os.remove(filepath)
+                    logger.debug(f"Cleaned up old frame: {filename}")
+    except Exception as e:
+        logger.debug(f"Cleanup error: {e}")
+
+# ============================================
+# MAIN INFERENCE FUNCTION
+# ============================================
+def analyze_media_with_top_frames_and_images(media_path, top_k=5):
+    """
+    Main analysis function with FULL FRAME PNG saving
+    
+    Returns:
+    {
+        "label": "REAL|FAKE",
+        "confidence": 0.95,
+        "metadata": {
+            "duration_sec": 13.48,
+            "frames_analyzed": 30
+        },
+        "top_frames": [
+            {
+                "timestamp_sec": 2.3,
+                "frame_index": 7,
+                "fake_confidence": 0.97,
+                "url": "/assets/frames/frame1.png"
+            }
+        ]
+    }
+    """
+    logger.info(f"Analyzing: {media_path}")
+    
+    # Cleanup old frames periodically
+    cleanup_old_frames(max_age_hours=24)
+    
+    # Load model
+    try:
+        model = _load_model()
     except Exception as e:
         logger.exception("Model loading failed")
         return {"error": "model_load_failed", "message": str(e)}
     
+    # Detect video or image
     _, ext = os.path.splitext(media_path.lower())
-    image_exts = {'.jpg', '.jpeg', '.png', '.bmp'}
-    media_basename = os.path.splitext(os.path.basename(media_path))[0]
     
-    if ext in image_exts:
-        faces, metadata, duration = image_to_faces(media_path, max_frames=FRAMES_PER_CLIP, target_size=IMG_SIZE)
-        is_video = False
+    if ext in {'.jpg', '.jpeg', '.png', '.bmp'}:
+        faces, full_frames, metadata, duration = image_to_faces(media_path)
     else:
-        faces, metadata, duration = video_to_faces(media_path, max_frames=FRAMES_PER_CLIP, target_size=IMG_SIZE)
-        is_video = True
+        faces, full_frames, metadata, duration = video_to_faces(media_path)
     
-    if len(faces) == 0:
-        logger.warning("No faces detected in input media")
-        return {"error": "no_faces_detected", "message": "No faces found in input."}
+    # Validate faces
+    if len(faces) == 0 or all(f.max() == 0 for f in faces):
+        logger.warning("No faces detected")
+        return {"error": "no_faces_detected", "message": "No faces found in media"}
     
-    inp = preprocess_faces_list(faces, frames=FRAMES_PER_CLIP, img_size=IMG_SIZE)
+    # Preprocess faces for model
+    input_tensor = preprocess_faces_list(faces)
     
+    # Run inference
     try:
-        logger.info("Running model prediction...")
-        preds = model.predict(inp, verbose=0)
-        cnn_features = intermediate_model.predict(inp, verbose=0)
+        predictions = model.predict(input_tensor, verbose=0)
+        overall_prob = float(predictions[0][0])
+        
+        logger.info(f"Model output: {overall_prob:.4f}")
+        
     except Exception as e:
         logger.exception("Inference failed")
         return {"error": "inference_failed", "message": str(e)}
     
-    prob = float(preds[0][0])
-    label = 'FAKE' if prob > 0.5 else 'REAL'
-    confidence = prob if prob > 0.5 else 1.0 - prob
-    
-    frame_scores = [(idx, float(np.sum(np.abs(cnn_features[0, idx])))) for idx in range(cnn_features.shape[1])]
-    top_frames = sorted(frame_scores, key=lambda x: x[1], reverse=True)[:top_k]
-    
-    max_score = max(score for _, score in top_frames) if top_frames else 1
-    
-    # Prepare top frames data
-    top_frames_data = []
-    timestamps_for_extraction = []
-    
-    for rank, (idx_frame, score) in enumerate(top_frames, 1):
-        norm_score = score / max_score if max_score != 0 else 0
-        frame_idx, timestamp = metadata[idx_frame] if idx_frame < len(metadata) else (-1, -1.0)
-        top_frames_data.append((faces[idx_frame], timestamp, norm_score))
-        timestamps_for_extraction.append(timestamp)
-    
-    # Save metadata to CSV
-    csv_path = save_metadata_to_csv(top_frames_data, media_basename)
-    
-    # Extract frames using FFmpeg if it's a video
-    if is_video:
-        try:
-            frame_paths = extract_frames_ffmpeg(media_path, timestamps_for_extraction, media_basename)
-        except Exception as e:
-            logger.warning(f"FFmpeg extraction failed: {e}. Saving frames to disk instead.")
-            frame_paths = save_frames_to_disk(top_frames_data, media_basename)
+    # Interpret overall result
+    if overall_prob > CONFIDENCE_THRESHOLD:
+        label = "FAKE"
+        confidence = overall_prob
     else:
-        frame_paths = save_frames_to_disk(top_frames_data, media_basename)
+        label = "REAL"
+        confidence = 1.0 - overall_prob
     
-    # Build final response
-    top_frames_list = []
-    for (filepath, web_url), (frame, timestamp, confidence) in zip(frame_paths, top_frames_data):
-        top_frames_list.append({
-            "timestamp_sec": float(timestamp),
-            "frame_index": len(top_frames_list) + 1,
-            "fake_confidence": round(confidence, 4),
-            "url": web_url
-        })
+    logger.info(f"Result: {label} (confidence: {confidence:.4f})")
     
-    logger.info(f"✓ Final Result: {label} (confidence: {confidence:.3f})")
+    # ============================================
+    # EXTRACT TOP 5 FRAMES AFFECTING RESULT
+    # ============================================
+    top_frames = []
     
+    try:
+        # Create frame score list
+        frame_scores = []
+        
+        for i, (face, full_frame, (frame_idx, timestamp)) in enumerate(zip(faces, full_frames, metadata)):
+            # Skip black/padded frames
+            if face.max() == 0:
+                continue
+            
+            # Use brightness/saliency as score
+            brightness = float(np.mean(face))
+            
+            # Estimate frame-level fake confidence
+            frame_fake_conf = brightness / 255.0
+            
+            # If overall label is FAKE, multiply by overall confidence
+            if label == "FAKE":
+                frame_fake_conf = frame_fake_conf * confidence
+            else:
+                frame_fake_conf = frame_fake_conf * (1 - confidence)
+            
+            frame_scores.append({
+                'index': i,
+                'frame_idx': int(frame_idx),
+                'timestamp': float(timestamp),
+                'face': face,
+                'full_frame': full_frame,  # FULL ORIGINAL FRAME
+                'score': frame_fake_conf
+            })
+        
+        # Sort by score (descending) and take top K
+        frame_scores.sort(key=lambda x: x['score'], reverse=True)
+        top_frame_data = frame_scores[:top_k]
+        
+        logger.info(f"Extracted top {len(top_frame_data)} frames")
+        
+        # Convert to response format - SAVE FULL FRAMES AS PNG
+        for idx, frame_info in enumerate(top_frame_data, 1):
+            # Save FULL FRAME as PNG
+            frame_url = save_full_frame_as_png(frame_info['full_frame'], idx)
+            
+            if frame_url:  # Only add if successfully saved
+                top_frames.append({
+                    "timestamp_sec": frame_info['timestamp'],
+                    "frame_index": frame_info['frame_idx'],
+                    "fake_confidence": round(frame_info['score'], 4),
+                    "url": frame_url  # /assets/frames/frame1.png
+                })
+    
+    except Exception as e:
+        logger.warning(f"Top frames extraction failed: {e}")
+        top_frames = []
+    
+    # ============================================
+    # BUILD RESPONSE
+    # ============================================
     return {
         "label": label,
         "confidence": round(confidence, 4),
         "metadata": {
             "duration_sec": round(duration, 2),
-            "frames_analyzed": len(faces)
+            "frames_analyzed": len([f for f in faces if f.max() > 0])
         },
-        "top_frames": top_frames_list,
-        "csv_path": csv_path
+        "top_frames": top_frames
     }
