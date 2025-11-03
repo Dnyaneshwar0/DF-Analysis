@@ -8,21 +8,45 @@ const mockData = {
   },
 
   deepfake: {
-    overview:
-      'The system analyzed 120 frames and detected visual artifacts consistent with deepfake manipulations.',
-    confidence: 0.82,
-    frames: [
-      { id: 1, imageUrl: 'https://placekitten.com/200/120', score: 0.95 },
-      { id: 2, imageUrl: 'https://placekitten.com/201/120', score: 0.88 },
-      { id: 3, imageUrl: 'https://placekitten.com/202/120', score: 0.75 },
-      { id: 4, imageUrl: 'https://placekitten.com/203/120', score: 0.15 },
-      { id: 5, imageUrl: 'https://placekitten.com/204/120', score: 0.45 },
-    ],
-    explanation:
-      `Deepfake artifacts are identified by inconsistent lighting and unnatural facial texture in multiple frames.\n` +
-      `Confidence score is calculated based on a neural network trained on over 10,000 real and fake samples.\n` +
-      `Frames with scores above 0.7 indicate likely manipulation.\n` +
-      `Further investigation recommended for borderline cases.`,
+    "label": "FAKE",
+  "confidence": 0.92,
+  "metadata": {
+    "duration_sec": 13.4,
+    "frames_analyzed": 160,
+    
+  },
+  "top_frames": [
+    {
+      "timestamp_sec": 2.3,
+      "frame_index": 1,
+      "fake_confidence": 0.97,
+      "url": "/assets/frames/frame1.png"
+    },
+    {
+      "timestamp_sec": 4.6,
+      "frame_index": 2,
+      "fake_confidence": 0.95,
+      "url": "/assets/frames/frame2.png"
+    },
+    {
+      "timestamp_sec": 7.1,
+      "frame_index": 3,
+      "fake_confidence": 0.93,
+      "url": "/assets/frames/frame3.png"
+    },
+    {
+      "timestamp_sec": 9.2,
+      "frame_index": 4,
+      "fake_confidence": 0.80,
+      "url": "/assets/frames/frame4.png"
+    },
+    {
+      "timestamp_sec": 12.0,
+      "frame_index": 5,
+      "fake_confidence": 0.88,
+      "url": "/assets/frames/frame5.png"
+    }
+  ]
   },
 
   reverseEng: {

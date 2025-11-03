@@ -31,7 +31,7 @@ export default function UploadPage({
     file ? `${(file.size / 1024 / 1024).toFixed(2)} MB` : '';
 
   return (
-    <section className="max-w-2xl mx-auto p-5">
+    <section className="max-w-3xl mx-auto p-8">
       <div className="bg-slate-900 rounded-2xl shadow-lg p-6 text-slate-100">
         <header className="mb-4 text-center">
           <h2 className="text-xl font-semibold">Upload Media</h2>
@@ -55,7 +55,7 @@ export default function UploadPage({
             <button
               type="button"
               onClick={openFilePicker}
-              className="flex flex-col items-center gap-2 w-full py-5 rounded-xl border-2 border-dashed border-slate-700 hover:border-indigo-400 transition focus:outline-none"
+              className="flex flex-col items-center gap-2 w-full py-8 rounded-xl border-2 border-dashed border-slate-700 hover:border-indigo-400 transition focus:outline-none"
               aria-label="Click to upload media file"
             >
               <div className="flex items-center justify-center w-14 h-14 rounded-full bg-slate-700 text-indigo-300 shadow-md">

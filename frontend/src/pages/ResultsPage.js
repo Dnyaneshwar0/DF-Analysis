@@ -83,7 +83,7 @@ export default function ResultsPage({ data = {}, analysisOptions = {}, onReset }
                     </span>
                   )}
                   {verdictLabel === 'fake' && (
-                    <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-900/40 text-red-300 text-sm font-medium border border-red-800">
+                    <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-900/30 text-rose-200 text-sm font-medium border border-rose-800/40">
                       <FaTimesCircle /> Fake
                     </span>
                   )}
@@ -119,19 +119,20 @@ export default function ResultsPage({ data = {}, analysisOptions = {}, onReset }
               </div>
             </div>
 
+            {/* Replaced side buttons block (softer theme, better contrast) */}
             <div className="flex-shrink-0 flex flex-col items-end gap-3">
               <div className="flex gap-2">
                 <button
                   onClick={() => doExport('json')}
                   disabled={exporting}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-gradient-to-r from-indigo-500 to-violet-500 text-white font-semibold shadow-md hover:from-indigo-600 hover:to-violet-600 transition"
                 >
                   <FaFileDownload /> Export JSON
                 </button>
 
                 <button
                   onClick={copyJSON}
-                  className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-slate-800 text-slate-200 border border-slate-700 hover:bg-slate-700 transition"
+                  className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-slate-800 text-slate-200 border border-slate-700 hover:bg-slate-750 transition"
                 >
                   <FaClipboard /> {copied ? 'Copied' : 'Copy JSON'}
                 </button>
@@ -139,7 +140,7 @@ export default function ResultsPage({ data = {}, analysisOptions = {}, onReset }
 
               <button
                 onClick={onReset}
-                className="mt-2 w-full rounded-md bg-red-600 px-3 py-2 font-semibold hover:bg-red-700 transition"
+                className="mt-2 w-full rounded-md bg-rose-500/90 hover:bg-rose-700 text-white font-semibold px-3 py-2 shadow-sm transition focus:outline-none focus:ring-2 focus:ring-rose-500/30"
               >
                 Reset
               </button>

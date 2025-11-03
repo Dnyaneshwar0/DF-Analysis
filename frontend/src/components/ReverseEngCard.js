@@ -192,14 +192,14 @@ export default function ReverseEngCard({
       padding: '10px 12px',
       minWidth: 200,
       boxShadow: '0 8px 24px rgba(2,6,23,0.6)',
-      color: '#e6eef8',
+      color: '#bbc2cbff',
     };
 
     return (
       <div style={boxStyle}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ width: 10, height: 10, borderRadius: 6, background: color }} />
-          <div style={{ fontWeight: 700, color: '#fff' }}>{name}</div>
+          <div style={{ fontWeight: 700, color: '#efe9e9ff' }}>{name}</div>
         </div>
         <div style={{ marginTop: 8, fontSize: 18, fontWeight: 600 }}>{value.toFixed(2)}%</div>
         <div style={{ marginTop: 6, fontSize: 12, color: 'rgba(230,238,248,0.7)' }}>probability (confidence)</div>
@@ -215,7 +215,7 @@ export default function ReverseEngCard({
 
       <div className="bg-gradient-to-br from-[#0b1220] to-[#0e1622] rounded-lg p-4 border border-slate-700 shadow-sm mb-4">
         <div className="flex flex-col items-center">
-          <div className="text-sm font-semibold text-slate-300 mb-3">Confidence Score</div>
+          <div className="text-xl font-semibold text-slate-300 mb-5">Confidence Score</div>
 
           <div style={{ width: gw, height: gh }} className="relative mb-2">
             <svg viewBox={`0 0 ${gw} ${gh}`} className="w-full h-full" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
@@ -275,7 +275,7 @@ export default function ReverseEngCard({
 
       <div className="bg-slate-800 rounded-lg p-4 border border-slate-700 mb-4">
         <div className="flex items-center justify-between mb-3">
-          <div className="text-sm font-semibold text-slate-200">Model probabilities</div>
+          <div className="text-xl font-semibold text-slate-200">Model Probabilities</div>
         </div>
 
         <div style={{ height: 220 }}>
@@ -313,7 +313,7 @@ export default function ReverseEngCard({
                 tickLine={false}
               />
 
-              <Tooltip content={(props) => <CustomTooltip {...props} />} />
+              <Tooltip content={(props) => <CustomTooltip {...props} />} cursor = {false}/>
 
               <Bar
                 dataKey="value"
@@ -322,6 +322,10 @@ export default function ReverseEngCard({
                 isAnimationActive={true}
                 animationDuration={Math.max(600, animationMs)}
                 animationEasing="ease"
+                activeBar={-1}
+
+                 
+
               >
                 {chartData.slice(0, 6).map((entry, index) => {
                   const fill = `url(#${gradientId(index)})`;
@@ -339,7 +343,7 @@ export default function ReverseEngCard({
                   dataKey="value"
                   position="right"
                   formatter={(v) => `${v.toFixed(1)}%`}
-                  style={{ fill: '#e6eef8', fontSize: 12, fontWeight: 700 }}
+                  style={{ fill: '#afc5cbff', fontSize: 12, fontWeight: 700 }}
                 />
               </Bar>
             </BarChart>
@@ -349,7 +353,7 @@ export default function ReverseEngCard({
 
       <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
         <div className="flex items-center justify-between mb-3">
-          <div className="text-sm font-semibold text-slate-200">Model Description</div>
+          <div className="text-xl font-semibold text-slate-200">Model Description</div>
         </div>
 
         {predictedDetails ? (
@@ -358,10 +362,10 @@ export default function ReverseEngCard({
               <div className="flex items-baseline justify-between">
                 <div>
                  <div className="px-3 py-2 rounded-lg border border-indigo-500/40 bg-slate-900/40 shadow-sm">
-  <div className="text-base font-semibold text-indigo-300 tracking-wide">
+  <div className="text-2xl font-semibold text-indigo-300 tracking-wide">
     {predictedDetails.name}
   </div>
-  <div className="text-xs text-slate-400 italic mt-0.5">
+  <div className="text-xl text-slate-400 italic mt-0.5">
     {predictedDetails.type}
   </div>
 </div>
