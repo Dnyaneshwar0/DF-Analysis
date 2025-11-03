@@ -175,7 +175,7 @@ export default function AboutUs({ siteName = 'AffectForensics' }) {
         </section>
 
         <footer className="text-sm text-slate-500 text-center mt-10">
-          Legal: AffectForensics estimates expressions, generative origins, and emotional intent — it does not substitute professional judgement.
+          Legal: AffectForensics estimates expressions, generative origins, and emotional intent, it does not substitute professional judgement.
         </footer>
       </div>
     </section>
