@@ -98,20 +98,20 @@
       "confidence": 0.2937
     },
     {
-      "start": 13.0,
-      "end": 15.0,
-      "text": "that's why even at a party of 5000 people",
+      "start": 13.5,
+      "end": 14.5,
+      "text": "away that's why even at a party of 5000 people a",
       "emotions": [
         "neutral",
         "admiration",
         "annoyance"
       ],
       "intensities": [
-        0.3313,
-        0.0867,
-        0.0756
+        0.3399,
+        0.0882,
+        0.0732
       ],
-      "confidence": 0.3313
+      "confidence": 0.3399
     },
     {
       "start": 15.0,

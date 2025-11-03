@@ -186,9 +186,9 @@
     {
       "image": "/home/ampm/projects/DF-Analysis/backend/data/emotion/input/processed/tmp/eddiewoo/frame_00027.jpg",
       "timestamp": 13.0,
-      "raw_text": "That's why even at a party of 5000 people,",
-      "text": "that's why even at a party of 5000 people",
-      "conf": 0.6291650073894771
+      "raw_text": "",
+      "text": "",
+      "conf": 0.0
     },
     {
       "image": "/home/ampm/projects/DF-Analysis/backend/data/emotion/input/processed/tmp/eddiewoo/frame_00028.jpg",
@@ -207,9 +207,9 @@
     {
       "image": "/home/ampm/projects/DF-Analysis/backend/data/emotion/input/processed/tmp/eddiewoo/frame_00030.jpg",
       "timestamp": 14.5,
-      "raw_text": "Thats why even at a party of 5000 people,",
-      "text": "thats why even at a party of 5000 people",
-      "conf": 0.8407870894543377
+      "raw_text": "",
+      "text": "",
+      "conf": 0.0
     },
     {
       "image": "/home/ampm/projects/DF-Analysis/backend/data/emotion/input/processed/tmp/eddiewoo/frame_00031.jpg",
