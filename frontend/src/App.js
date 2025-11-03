@@ -21,14 +21,35 @@ export default function App() {
   });
   const [resultData, setResultData] = useState(null);
 
-  const startAnalysis = () => {
+  const startAnalysis = async () => {
     if (!uploadedFile) return;
     setAppState(APP_STATES.PROCESSING);
-    setTimeout(() => {
-      const mockResults = require('./mock/mockData').default;
-      setResultData(mockResults);
+
+    try {
+      // Build form data
+      const formData = new FormData();
+      formData.append('file', uploadedFile);
+
+      // Send to Flask backend
+      const response = await fetch('http://localhost:5000/reveng/analyze', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) throw new Error('Failed to analyze video');
+
+      const data = await response.json();
+
+      // Store the real backend data in the same shape as your mock
+      setResultData({ reverseEng: data });
+
+      // Move to results page
       setAppState(APP_STATES.RESULTS);
-    }, 8000);
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Something went wrong while analyzing the video.');
+      setAppState(APP_STATES.UPLOAD);
+    }
   };
 
   const resetApp = () => {

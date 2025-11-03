@@ -2,6 +2,7 @@ import os
 import sys
 import logging
 from flask import Flask, jsonify
+from flask_cors import CORS
 
 # --- ensure project root (parent of src/) is in sys.path ---
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -30,6 +31,7 @@ def create_app(preload_models: bool = True):
     Set preload_models=False if you don't want model loading attempted at startup.
     """
     app = Flask(__name__)
+    CORS(app)  # ✅ Allow frontend (React) to make API requests
 
     # Register blueprints here
     app.register_blueprint(reverse_bp, url_prefix="/reveng")
