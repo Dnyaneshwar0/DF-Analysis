@@ -379,7 +379,7 @@ export default function ReverseEngCard({
                   {predictedDetails.key_characteristics.map((k, i) => (
                     <li
                       key={i}
-                      className="flex items-start space-x-2 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 hover:bg-slate-750 transition"
+                      className="flex items-center space-x-2 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 hover:bg-slate-750 transition"
                     >
                       <svg
                         className="w-4 h-4 mt-0.5 text-cyan-400 flex-shrink-0"
