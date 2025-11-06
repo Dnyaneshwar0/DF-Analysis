@@ -5,31 +5,47 @@ import EmotionCard from '../components/EmotionCard';
 import ReverseEngCard from '../components/ReverseEngCard';
 
 export default function ResultsPage({ data = {}, analysisOptions = {}, onReset }) {
-  const [activeTab, setActiveTab] = useState(
-    analysisOptions.deepfake ? 'deepfake' :
-    analysisOptions.emotion ? 'emotion' :
-    analysisOptions.reverseEng ? 'reverseEng' :
-    'deepfake'
-  );
+  // prefer a tab which is enabled AND has data; otherwise fall back to option order
+  const initialTab = (() => {
+    if (analysisOptions.deepfake && data.deepfake) return 'deepfake';
+    if (analysisOptions.emotion && data.emotion) return 'emotion';
+    if (analysisOptions.reverseEng && data.reverseEng) return 'reverseEng';
+    if (analysisOptions.deepfake) return 'deepfake';
+    if (analysisOptions.emotion) return 'emotion';
+    if (analysisOptions.reverseEng) return 'reverseEng';
+    return 'deepfake';
+  })();
 
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [exporting, setExporting] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const verdict = data?.verdict || { text: 'No verdict available', label: 'Unknown' };
-  const verdictLabel = (verdict.label || '').toLowerCase();
-
-  const renderActiveTab = () => {
-    switch (activeTab) {
-      case 'deepfake':
-        return analysisOptions.deepfake && <DeepfakeCard data={data.deepfake} />;
-      case 'emotion':
-        return analysisOptions.emotion && <EmotionCard data={data.emotion} />;
-      case 'reverseEng':
-        return analysisOptions.reverseEng && <ReverseEngCard data={data.reverseEng} />;
-      default:
-        return null;
+  // Determine overall verdict from available real data (prefer deepfake detection)
+  const verdict = (() => {
+    // If deepfake detection is present use that (label/confidence)
+    if (data?.deepfake && (data.deepfake.label || typeof data.deepfake.confidence === 'number')) {
+      const labelRaw = (data.deepfake.label || '').toString().toUpperCase();
+      const label = labelRaw === 'FAKE' ? 'Fake' : labelRaw === 'REAL' ? 'Real' : 'Suspicious';
+      const confidence = typeof data.deepfake.confidence === 'number' ? data.deepfake.confidence : null;
+      const text = confidence != null
+        ? `Detected as ${labelRaw} with ${(confidence * 100).toFixed(1)}% confidence.`
+        : `Detected as ${labelRaw}.`;
+      return { label, text };
     }
-  };
+
+    // fallback to an explicit verdict object if present in data
+    if (data?.verdict && (data.verdict.label || data.verdict.text)) {
+      return {
+        label: data.verdict.label || 'Unknown',
+        text: data.verdict.text || 'No detailed verdict provided',
+      };
+    }
+
+    // ultimate fallback
+    return { text: 'No verdict available', label: 'Unknown' };
+  })();
+
+  const verdictLabel = (verdict.label || '').toLowerCase();
 
   const doExport = (format = 'json') => {
     setExporting(true);
@@ -63,8 +79,8 @@ export default function ResultsPage({ data = {}, analysisOptions = {}, onReset }
     }
   };
 
-  // small summary stats if present
-  const confidence = data?.summary?.confidence;
+  // small summary stats if present (keep existing behaviour)
+  const confidence = data?.summary?.confidence ?? (data?.deepfake?.confidence ?? null);
   const topEmotion = data?.emotion?.topEmotion;
 
   return (
@@ -92,6 +108,11 @@ export default function ResultsPage({ data = {}, analysisOptions = {}, onReset }
                       <FaExclamationTriangle /> Suspicious
                     </span>
                   )}
+                  {['real', 'fake', 'suspicious'].indexOf(verdictLabel) === -1 && (
+                    <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800 text-slate-300 text-sm font-medium border border-slate-700">
+                      {verdict.label || 'Unknown'}
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -111,15 +132,20 @@ export default function ResultsPage({ data = {}, analysisOptions = {}, onReset }
                     Top emotion: <span className="font-medium ml-2">{topEmotion}</span>
                   </div>
                 )}
-                {data?.duration && (
+                {data?.deepfake?.metadata?.duration_sec && (
                   <div className="px-3 py-1 rounded-md bg-slate-800 border border-slate-700 text-slate-200">
-                    Duration: <span className="font-medium ml-2">{data.duration}</span>
+                    Duration: <span className="font-medium ml-2">{data.deepfake.metadata.duration_sec}s</span>
+                  </div>
+                )}
+                {data?.deepfake?.metadata?.frames_analyzed && (
+                  <div className="px-3 py-1 rounded-md bg-slate-800 border border-slate-700 text-slate-200">
+                    Frames analyzed: <span className="font-medium ml-2">{data.deepfake.metadata.frames_analyzed}</span>
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Replaced side buttons block (softer theme, better contrast) */}
+            {/* Side actions */}
             <div className="flex-shrink-0 flex flex-col items-end gap-3">
               <div className="flex gap-2">
                 <button
@@ -192,7 +218,24 @@ export default function ResultsPage({ data = {}, analysisOptions = {}, onReset }
         {/* Tab content */}
         <section className="mt-4">
           <div className="bg-slate-900 rounded-lg p-6 border border-slate-800 min-h-[220px]">
-            {renderActiveTab()}
+            {/* Keep each card mounted and just hide/show via `hidden` so internal state persists */}
+            {analysisOptions.deepfake && (
+              <div hidden={activeTab !== 'deepfake'}>
+                <DeepfakeCard data={data.deepfake || {}} />
+              </div>
+            )}
+
+            {analysisOptions.emotion && (
+              <div hidden={activeTab !== 'emotion'}>
+                <EmotionCard data={data.emotion || {}} />
+              </div>
+            )}
+
+            {analysisOptions.reverseEng && (
+              <div hidden={activeTab !== 'reverseEng'}>
+                <ReverseEngCard data={data.reverseEng || {}} />
+              </div>
+            )}
           </div>
         </section>
       </main>
