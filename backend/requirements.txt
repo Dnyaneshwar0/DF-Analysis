@@ -74,9 +74,3 @@ urllib3==2.5.0
 Werkzeug==3.1.3
 wheel==0.45.1
 wrapt==2.0.1
-
-
-tesseract-ocr tesseract-ocr-eng libsndfile1 libgl1 libglib2.0-0 libsm6 libxrender1 libxext6
-pillow
-
-numpy joblib scikit-learn scipy pytesseract easyocr opencv-python onnxruntime torch torchaudio librosa soundfile wordfreq
