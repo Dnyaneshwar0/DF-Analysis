@@ -113,13 +113,13 @@ npm start
 ## Contributors
 
 <a href="https://github.com/Dnyaneshwar0">
-  <img src="https://avatars.githubusercontent.com/u/106135663?v=4" width="60" style="border-radius:50%;" alt="Parth Gujarkar" />
+  <img src="https://avatars.githubusercontent.com/u/97013118?s=48&v=4" width="60" style="border-radius:50%;" alt="Parth Gujarkar" />
 </a>
 <a href="https://github.com/blast678">
-  <img src="https://avatars.githubusercontent.com/u/106135663?v=4" width="60" style="border-radius:50%;" alt="Mithilesh Deshmukh" />
+  <img src="https://avatars.githubusercontent.com/u/98542059?v=4" width="60" style="border-radius:50%;" alt="Mithilesh Deshmukh" />
 </a>
 <a href="https://github.com/ampm14">
-  <img src="https://avatars.githubusercontent.com/u/106135663?v=4" width="60" style="border-radius:50%;" alt="Aishwarya Mhatre" />
+  <img src="https://avatars.githubusercontent.com/u/162469695?v=4" width="60" style="border-radius:50%;" alt="Aishwarya Mhatre" />
 </a>
 
 **Parth Gujarkar** – [@Dnyaneshwar0](https://github.com/Dnyaneshwar0)  
