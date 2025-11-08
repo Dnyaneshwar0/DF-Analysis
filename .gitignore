@@ -7,3 +7,7 @@ get-pip.py
 backend/models/detection/loaded_dataset.npz
 backend/models/detection/loaded_datasetof2.npz
 frontend/build/
+backend/ffmpeg/
+backend/data/**/*.json
+backend/data/**/*.npy
+backend/data/**/*.mp4

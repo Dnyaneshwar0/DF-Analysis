@@ -94,12 +94,12 @@ export default function ResultsPage({ data = {}, analysisOptions = {}, onReset }
                 <h2 className="text-2xl font-bold text-white">Overall Verdict</h2>
                 <div>
                   {verdictLabel === 'real' && (
-                    <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-900/40 text-green-300 text-sm font-medium border border-green-800">
+                    <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-900/40 text-green-300 text-md font-medium border border-green-800">
                       <FaCheckCircle /> Real
                     </span>
                   )}
                   {verdictLabel === 'fake' && (
-                    <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-900/30 text-rose-200 text-sm font-medium border border-rose-800/40">
+                    <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-900/30 text-rose-200 text-md font-medium border border-rose-800/40">
                       <FaTimesCircle /> Fake
                     </span>
                   )}

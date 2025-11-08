@@ -13,6 +13,12 @@ import shutil
 import subprocess
 import sys
 import os
+os.environ["PYTHONUTF8"] = "1"
+os.environ["PYTHONIOENCODING"] = "utf-8"
+# Optional: also patch sys.stdout to ignore encoding errors
+sys.stdout.reconfigure(encoding='utf-8', errors='ignore')
+sys.stderr.reconfigure(encoding='utf-8', errors='ignore')
+
 from dataclasses import dataclass
 from difflib import SequenceMatcher, get_close_matches
 from pathlib import Path
@@ -36,6 +42,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_INPUT_DIR = REPO_ROOT / "data" / "emotion" / "input" / "raw"
 DEFAULT_PROCESSED_DIR = REPO_ROOT / "data" / "emotion" / "input" / "processed"
 DEFAULT_TMP_ROOT = DEFAULT_PROCESSED_DIR / "tmp"
+FFMPEG_PATH = REPO_ROOT / "ffmpeg" / "bin" / "ffmpeg.exe"
 
 # Utils
 def run_cmd_quiet(cmd: List[str]):
@@ -287,7 +294,7 @@ def extract_frames_ffmpeg(video_path: Path, out_dir: Path, interval: float = 0.5
     out_dir.mkdir(parents=True, exist_ok=True)
     fps = 1.0 / float(interval)
     vf = f"scale=-2:{scale_h},fps={fps}"
-    cmd = ["ffmpeg", "-y", "-i", str(video_path), "-vf", vf, str(out_dir / "frame_%05d.jpg")]
+    cmd = [str(FFMPEG_PATH), "-y", "-i", str(video_path), "-vf", vf, str(out_dir / "frame_%05d.jpg")]
     run_cmd_quiet(cmd)
 
 def process_frames_dir(frames_dir: Path, interval: float, crop: float, min_len: int, engine_order: List[str]) -> List[FrameResult]:
@@ -412,7 +419,7 @@ def finalize_ocr_segments(segments: List[Dict]) -> List[Dict]:
 
 def extract_audio_ffmpeg(video_path: Path, out_wav: Path, target_sr: int = 16000):
     cmd = [
-        "ffmpeg", "-y", "-i", str(video_path),
+        str(FFMPEG_PATH), "-y", "-i", str(video_path),
         "-vn", "-acodec", "pcm_s16le", "-ar", str(target_sr), "-ac", "1",
         str(out_wav)
     ]

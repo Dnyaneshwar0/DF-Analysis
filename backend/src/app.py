@@ -12,6 +12,7 @@ if PROJECT_ROOT not in sys.path:
 # --- import blueprints from routes ---
 from src.routes.reverse_routes import reverse_bp
 from src.routes.deepfake_routes import deepfake_bp
+from src.routes.emotion_routes import emotion_bp 
 
 # Try to import optional preload helpers (non-fatal if they don't exist)
 try:
@@ -24,6 +25,11 @@ try:
 except Exception:
     _preload_reveng_model = None
 
+# Emotion module preload (optional — df_emo may not provide _load_model)
+try:
+    from src.inference.emotion.df_emo import _load_model as _preload_emotion_model
+except Exception:
+    _preload_emotion_model = None
 
 def create_app(preload_models: bool = True):
     """
@@ -45,6 +51,7 @@ def create_app(preload_models: bool = True):
     # Register API blueprints
     app.register_blueprint(reverse_bp, url_prefix="/reveng")
     app.register_blueprint(deepfake_bp, url_prefix="/detect")
+    app.register_blueprint(emotion_bp, url_prefix="/emotion")
 
     # ✅ Serve React frontend build (for production)
     @app.route("/", defaults={"path": ""})
@@ -80,9 +87,15 @@ def create_app(preload_models: bool = True):
                 logger.info("Preloaded revEng model at startup.")
             except Exception as e:
                 logger.warning("RevEng model preload failed (lazy-load on first request): %s", e)
+                
+        if _preload_emotion_model is not None:
+            try:
+                _preload_emotion_model()
+                logger.info("Preloaded emotion model at startup.")
+            except Exception as e:
+                logger.warning("Emotion model preload failed (lazy-load on first request): %s", e)
 
     return app
-
 
 # --- main entry point ---
 if __name__ == "__main__":

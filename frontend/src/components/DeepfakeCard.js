@@ -244,7 +244,7 @@ export default function DeepfakeCard({ data = {}, animationMs = 2000 }) {
           <div className="flex-1" />
 
           <div className="flex flex-col items-end gap-3">
-            <div className="text-sm text-rose-200">Confidence</div>
+            <div className="text-sm text-white/60">Confidence</div>
             <div className="text-5xl font-bold tabular-nums mt-1" aria-live="polite">
               {displayPct}%
             </div>

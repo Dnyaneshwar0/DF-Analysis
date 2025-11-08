@@ -140,183 +140,205 @@ const mockData = {
   // existing emotion, audioWaveform, emotionIntensities remain unchanged...
    // Existing Emotion Section
   emotion: {
-    timeline: [
-      { time: 0.0, neutral: 0.3353, admiration: 0.1504, annoyance: 0.0 },
-      { time: 2.0, neutral: 0.3201, admiration: 0.1054, annoyance: 0.0686 },
-      { time: 6.0, neutral: 0.386, admiration: 0.0974, annoyance: 0.0 },
-      { time: 11.0, neutral: 0.3293, admiration: 0.0829, annoyance: 0.0732 },
-      { time: 12.0, neutral: 0.4471, admiration: 0.0911, annoyance: 0.0705 },
-      { time: 12.5, neutral: 0.2924, admiration: 0.0923, annoyance: 0.0605 },
-      { time: 13.0, neutral: 0.3293, admiration: 0.0829, annoyance: 0.0732 },
-      { time: 15.0, neutral: 0.1738, admiration: 0.0939, annoyance: 0.0 },
-      { time: 20.5, neutral: 0.3371, admiration: 0.0853, annoyance: 0.0 },
-    ],
-    schema: {
-      fields: ['timestamp', 'emotion', 'confidence'],
-      timestampFormat: 'HH:mm:ss',
+  file: "eddiewoo.mp4",
+  models: {
+    //video
+    rafdb: {
+      video: "eddiewoo.mp4",
+      duration_s: 21.59,
+      dominant_emotion: "Neutral",
+      timeline: [
+        { t: 0.03, emo: "Uncertain", conf: 0.0 },
+        { t: 1.1, emo: "Neutral", conf: 0.559 },
+        { t: 2.17, emo: "Sad", conf: 0.973 },
+        { t: 3.23, emo: "Sad", conf: 0.851 },
+        { t: 4.3, emo: "Neutral", conf: 0.985 },
+        { t: 5.36, emo: "Happy", conf: 0.998 },
+        { t: 6.43, emo: "Neutral", conf: 0.714 },
+        { t: 7.5, emo: "Angry", conf: 0.753 },
+        { t: 8.56, emo: "Neutral", conf: 0.693 },
+        { t: 9.63, emo: "Happy", conf: 0.999 },
+        { t: 10.69, emo: "Sad", conf: 0.922 },
+        { t: 11.76, emo: "Happy", conf: 0.999 },
+        { t: 12.83, emo: "Neutral", conf: 0.635 },
+        { t: 13.89, emo: "Surprise", conf: 0.604 },
+        { t: 14.96, emo: "Neutral", conf: 0.648 },
+        { t: 16.02, emo: "Surprise", conf: 0.678 },
+        { t: 17.09, emo: "Angry", conf: 0.962 },
+        { t: 18.16, emo: "Sad", conf: 0.954 },
+        { t: 19.22, emo: "Happy", conf: 0.999 },
+        { t: 20.29, emo: "Neutral", conf: 0.997 }
+      ]
     },
-    linegraph: {
-      video: 'eddiewoo',
-      top_emotions: ['neutral', 'admiration', 'annoyance'],
-      data: [
-        { time: 0.0, neutral: 0.3353, admiration: 0.1504, annoyance: 0.0 },
-        { time: 2.0, neutral: 0.3201, admiration: 0.1054, annoyance: 0.0686 },
-        { time: 6.0, neutral: 0.386, admiration: 0.0974, annoyance: 0.0 },
-        { time: 11.0, neutral: 0.3293, admiration: 0.0829, annoyance: 0.0732 },
-        { time: 12.0, neutral: 0.4471, admiration: 0.0911, annoyance: 0.0705 },
-        { time: 12.5, neutral: 0.2924, admiration: 0.0923, annoyance: 0.0605 },
-        { time: 13.0, neutral: 0.3293, admiration: 0.0829, annoyance: 0.0732 },
-        { time: 15.0, neutral: 0.1738, admiration: 0.0939, annoyance: 0.0 },
-        { time: 20.5, neutral: 0.3371, admiration: 0.0853, annoyance: 0.0 },
-      ],
-    },
-    segments: [
-      {
-        start: 0.0,
-        end: 2.0,
-        text: 'one a the golden ratio is a mathematical reality',
-        emotions: ['neutral', 'admiration', 'approval'],
-        intensities: [0.3353, 0.1504, 0.0813],
-        confidence: 0.3353,
+    //text
+    goemotions: {
+      //summary
+      summary: {
+        video: "eddiewoo",
+        dominant_emotion: "neutral",
+        emotion_distribution: {
+          neutral: 0.3342773570255522,
+          admiration: 0.09745002678346508,
+          approval: 0.014985758624044297,
+          annoyance: 0.03850042760161776,
+          love: 0.020235306109691834,
+          curiosity: 0.007862982991416608
+        }
       },
-      {
-        start: 2.0,
-        end: 6.0,
-        text: 'one a that like facts you can find everywhere',
-        emotions: ['neutral', 'admiration', 'annoyance'],
-        intensities: [0.3201, 0.1054, 0.0686],
-        confidence: 0.3201,
+      //graph
+      linegraph: {
+        video: "eddiewoo",
+        top_emotions: ["neutral", "admiration", "annoyance"],
+        data: [
+          { time: 0.0, neutral: 0.3374, admiration: 0.1262, annoyance: 0.0 },
+          { time: 2.0, neutral: 0.3537, admiration: 0.1034, annoyance: 0.064 },
+          { time: 6.0, neutral: 0.3683, admiration: 0.0985, annoyance: 0.0 },
+          { time: 11.0, neutral: 0.3313, admiration: 0.0867, annoyance: 0.0756 },
+          { time: 12.0, neutral: 0.4471, admiration: 0.0911, annoyance: 0.0705 },
+          { time: 12.5, neutral: 0.2937, admiration: 0.0968, annoyance: 0.0632 },
+          { time: 13.5, neutral: 0.3399, admiration: 0.0882, annoyance: 0.0732 },
+          { time: 15.0, neutral: 0.2034, admiration: 0.1003, annoyance: 0.0 },
+          { time: 20.5, neutral: 0.3337, admiration: 0.0859, annoyance: 0.0 }
+        ]
       },
-      {
-        start: 6.0,
-        end: 11.0,
-        text: 'from the changes of your fingers to the pillars of the parthenon',
-        emotions: ['neutral', 'admiration', 'approval'],
-        intensities: [0.386, 0.0974, 0.0737],
-        confidence: 0.386,
-      },
-      {
-        start: 11.0,
-        end: 12.0,
-        text: "that's why even at a party of 5000 people",
-        emotions: ['neutral', 'admiration', 'annoyance'],
-        intensities: [0.3293, 0.0829, 0.0732],
-        confidence: 0.3293,
-      },
-      {
-        start: 12.0,
-        end: 12.5,
-        text: 'people',
-        emotions: ['neutral', 'admiration', 'annoyance'],
-        intensities: [0.4471, 0.0911, 0.0705],
-        confidence: 0.4471,
-      },
-      {
-        start: 12.5,
-        end: 13.0,
-        text: "that's even at a poverty of 50 5000 penplelf",
-        emotions: ['neutral', 'admiration', 'annoyance'],
-        intensities: [0.2924, 0.0923, 0.0605],
-        confidence: 0.2924,
-      },
-      {
-        start: 13.0,
-        end: 15.0,
-        text: "that's why even at a party of 5000 people",
-        emotions: ['neutral', 'admiration', 'annoyance'],
-        intensities: [0.3293, 0.0829, 0.0732],
-        confidence: 0.3293,
-      },
-      {
-        start: 15.0,
-        end: 19.5,
-        text: "i'm proud to declared love mathematics",
-        emotions: ['love', 'neutral', 'admiration'],
-        intensities: [0.2275, 0.1738, 0.0939],
-        confidence: 0.2275,
-      },
-      {
-        start: 20.5,
-        end: 21.5,
-        text: 'will seal a we',
-        emotions: ['neutral', 'admiration', 'curiosity'],
-        intensities: [0.3371, 0.0853, 0.0714],
-        confidence: 0.3371,
-      },
-    ],
-  },
 
-  // Acoustic waveform (existing)
-  audioWaveform: {
-    meta: {
-      sr: 16000,
-      hop_length: 512,
-      frame_duration: 0.032,
-      num_frames: 25,
+      //table
+      tabledata: {
+        video: "eddiewoo",
+        segments: [
+          {
+            start: 0.0,
+            end: 2.0,
+            text: "one a the golden ratio is a mathematical reality",
+            emotions: ["neutral", "admiration", "approval"],
+            intensities: [0.3374, 0.1262, 0.0708],
+            confidence: 0.3374
+          },
+          {
+            start: 2.0,
+            end: 6.0,
+            text: "one a that like facts you can find everywhere",
+            emotions: ["neutral", "admiration", "annoyance"],
+            intensities: [0.3537, 0.1034, 0.064],
+            confidence: 0.3537
+          },
+          {
+            start: 6.0,
+            end: 11.0,
+            text: "from the changes of your fingers to the pillars of the parthenon",
+            emotions: ["neutral", "admiration", "approval"],
+            intensities: [0.3683, 0.0985, 0.064],
+            confidence: 0.3683
+          },
+          {
+            start: 11.0,
+            end: 12.0,
+            text: "that's why even at a party of 5000 people",
+            emotions: ["neutral", "admiration", "annoyance"],
+            intensities: [0.3313, 0.0867, 0.0756],
+            confidence: 0.3313
+          },
+          {
+            start: 12.0,
+            end: 12.5,
+            text: "people",
+            emotions: ["neutral", "admiration", "annoyance"],
+            intensities: [0.4471, 0.0911, 0.0705],
+            confidence: 0.4471
+          },
+          {
+            start: 12.5,
+            end: 13.0,
+            text: "that's even at a poverty of 50 5000 penplelf",
+            emotions: ["neutral", "admiration", "annoyance"],
+            intensities: [0.2937, 0.0968, 0.0632],
+            confidence: 0.2937
+          },
+          {
+            start: 13.5,
+            end: 14.5,
+            text: "away that's why even at a party of 5000 people a",
+            emotions: ["neutral", "admiration", "annoyance"],
+            intensities: [0.3399, 0.0882, 0.0732],
+            confidence: 0.3399
+          },
+          {
+            start: 15.0,
+            end: 19.5,
+            text: "i'm proud to declared love mathematics",
+            emotions: ["neutral", "love", "admiration"],
+            intensities: [0.2034, 0.1821, 0.1003],
+            confidence: 0.2034
+          },
+          {
+            start: 20.5,
+            end: 21.5,
+            text: "will seal a we",
+            emotions: ["neutral", "admiration", "curiosity"],
+            intensities: [0.3337, 0.0859, 0.0708],
+            confidence: 0.3337
+          }
+        ]
+      }
     },
-    axes: {
-      x_label: 'Time (s)',
-      y_label: 'Normalized Amplitude',
-    },
-    frames: {
-      time: [
-        0.0, 2.3, 4.6, 6.9, 9.2, 11.5, 13.8, 16.1, 18.4, 20.7, 23.0, 25.3, 27.6,
-        29.9, 32.2, 34.5, 36.8, 39.1, 41.4, 43.7, 46.0, 48.3, 50.6, 52.9, 55.2,
-      ],
-      envelope: [
-        0.13, 0.56, 0.48, 0.78, 0.41, 0.28, 0.17, 0.3, 0.4, 0.12, 0.18, 0.23, 0.31,
-        0.46, 0.54, 0.38, 0.24, 0.15, 0.28, 0.36, 0.52, 0.44, 0.22, 0.17, 0.13,
-      ],
-    },
-  },
 
-  
-  emotionIntensities: {
-    meta: {
-      sr: 16000,
-      hop_length: 512,
-      frame_duration: 0.032,
-      num_frames: 25,
-    },
-    axes: {
-      x_label: 'Time (s)',
-      y_label: 'Intensity (0..1)',
-    },
-    emotions: ['fearful', 'surprised', 'sad'],
-    frames: {
-      time: [
-        0.0, 2.3, 4.6, 6.9, 9.2, 11.5, 13.8, 16.1, 18.4, 20.7, 23.0, 25.3, 27.6,
-        29.9, 32.2, 34.5, 36.8, 39.1, 41.4, 43.7, 46.0, 48.3, 50.6, 52.9, 55.2,
-      ],
-      intensities: [
-        [0.34, 0.312, 0.134],
-        [0.36, 0.3, 0.14],
-        [0.38, 0.29, 0.15],
-        [0.42, 0.27, 0.15],
-        [0.5, 0.24, 0.16],
-        [0.58, 0.2, 0.18],
-        [0.62, 0.18, 0.2],
-        [0.6, 0.2, 0.2],
-        [0.55, 0.24, 0.21],
-        [0.48, 0.3, 0.22],
-        [0.44, 0.35, 0.21],
-        [0.4, 0.38, 0.2],
-        [0.36, 0.4, 0.21],
-        [0.34, 0.42, 0.24],
-        [0.32, 0.45, 0.23],
-        [0.3, 0.47, 0.23],
-        [0.28, 0.48, 0.24],
-        [0.3, 0.46, 0.24],
-        [0.33, 0.43, 0.24],
-        [0.37, 0.38, 0.25],
-        [0.42, 0.33, 0.25],
-        [0.46, 0.3, 0.24],
-        [0.44, 0.29, 0.25],
-        [0.4, 0.3, 0.26],
-        [0.36, 0.32, 0.27],
-      ],
-    },
-  },
+    //audio
+    ravdess: {
+      // final
+      results: {
+        file: "/home/ampm/projects/DF-Analysis/backend/data/emotion/input/processed/eddiewoo_mel.npy",
+        predicted_emotion: "fearful",
+        probabilities: {
+          neutral: 0.01338341273367405,
+          calm: 0.023433633148670197,
+          happy: 0.010573669336736202,
+          sad: 0.13376663625240326,
+          angry: 0.08338312059640884,
+          fearful: 0.33970537781715393,
+          disgust: 0.08353643864393234,
+          surprised: 0.31221774220466614
+        }
+      },
+      //waveform
+      waveform: {
+        meta: {
+          sr: 16000,
+          hop_length: 512,
+          frame_duration: 0.032,
+          original_num_frames: 1726,
+          export_num_points: 30
+        },
+        axes: { x_label: "Time (s)", y_label: "Normalized Amplitude" },
+        frames: {
+          time: [
+            0.0, 1.903448275862069, 3.806896551724138, 5.710344827586207,
+            7.613793103448276, 9.517241379310345, 11.420689655172414,
+            13.324137931034484, 15.227586206896552, 17.131034482758622,
+            19.03448275862069, 20.93793103448276, 22.841379310344827,
+            24.744827586206895, 26.648275862068967, 28.551724137931036,
+            30.455172413793104, 32.358620689655176, 34.262068965517244,
+            36.16551724137931, 38.06896551724138, 39.97241379310345,
+            41.87586206896552, 43.779310344827586, 45.682758620689654,
+            47.58620689655172, 49.48965517241379, 51.393103448275866,
+            53.296551724137935, 55.2
+          ],
+          envelope: [
+            0.12832821905612946, 0.12192441266158531, 0.23499565751388152,
+            0.12099218908055075, 0.12458466635695814, 0.7064206826275738,
+            0.12784744388070599, 0.14732397321997015, 0.1281187380182332,
+            0.2397258009376196, 0.17938262481113898, 0.12824866792251324,
+            0.16708068652399738, 0.12738548116437326, 0.12820418179035187,
+            0.12805371603061413, 0.12784085242912685, 0.1173230365946376,
+            0.12120268159899283, 0.7070475364553592, 0.12680738033919492,
+            0.5389095174855032, 0.4608906158085512, 0.12503449413283108,
+            0.31190624010974066, 0.1254081171134457, 0.11782285879398217,
+            0.09759997550783592, 0.24936739072716094, 0.1777241826057434
+          ]
+        }
+      }
+    }
+  }
+},   
 };
 
 export default mockData;

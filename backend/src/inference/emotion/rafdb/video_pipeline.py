@@ -37,7 +37,7 @@ LABELS = [label_map[str(i)] for i in sorted(map(int, label_map.keys()))]
 # -------------------------------------------------------------
 sess = ort.InferenceSession(str(ONNX_PATH), providers=["CPUExecutionProvider"])
 input_name = sess.get_inputs()[0].name
-print("✅ ONNX model loaded (CPUExecutionProvider)")
+print(" ONNX model loaded (CPUExecutionProvider)")
 
 # -------------------------------------------------------------
 # Detection + preprocessing
@@ -77,7 +77,7 @@ def run(video_path: Path):
     out_json = OUT_DIR / f"summary_{video_path.stem}.json"
     writer = cv2.VideoWriter(str(out_vid), cv2.VideoWriter_fourcc(*'mp4v'), fps, (width, height))
 
-    print(f"🎥 Processing {video_path.name} ({duration:.1f}s, {total} frames)")
+    print(f"Processing {video_path.name} ({duration:.1f}s, {total} frames)")
     frame_data, frame_idx = [], 0
     prev_label, prev_conf, prev_box = "Uncertain", 0.0, (50,50,150,150)
 
@@ -114,7 +114,7 @@ def run(video_path: Path):
             print(f"Processed {frame_idx}/{total} frames...")
 
     cap.release(); writer.release()
-    print("✅ Annotated video saved:", out_vid)
+    print("Annotated video saved:", out_vid)
 
     # ---------------------------------------------------------
     # Generate compact JSON summary (~20 timeline points)
@@ -136,7 +136,7 @@ def run(video_path: Path):
         "timeline": timeline
     }
     out_json.write_text(json.dumps(summary, indent=2))
-    print(f"📊 JSON summary saved: {out_json}")
+    print(f"JSON summary saved: {out_json}")
 
 # -------------------------------------------------------------
 # CLI entry

@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useRef, Fragment } from 'react';
 import {
   ResponsiveContainer,
   LineChart,
@@ -9,20 +9,76 @@ import {
   CartesianGrid,
   Label,
   Area,
-  ComposedChart
+  ComposedChart,
+  PieChart,
+  Pie,
+  Cell,
+  ReferenceArea,
 } from 'recharts';
 
-import mockData from '../mock/mockData';
+/**
+ * EmotionCard.jsx
+ * - Uses live `data` prop (passed from ResultsPage: <EmotionCard data={data.emotion} />)
+ * - Defensive: handles missing fields gracefully (empty charts / placeholders)
+ * - Does NOT import or use heavy mock data
+ */
 
-/* ------------------ Helpers ------------------ */
+// ---------------- STYLE CONSTANTS ----------------
+const UI = {
+  gridStroke: '#0b1220',
+  gridOpacity: 0.15,
+  axisTick: '#9CA3AF',
+  axisTick2: '#CBD5E1',
+  axisLabel: '#94a3b8',
+  panelBg: '#0f172a',
+  panelText: '#e6eef8',
+  border: '#334155',
+};
+
+const TEXT_COLOR_MAP = Object.freeze({
+  neutral: '#60A5FA',
+  admiration: '#FBBF24',
+  annoyance: '#F87171',
+  approval: '#34D399',
+  love: '#FB7185',
+  curiosity: '#A78BFA',
+  fearful: '#F43F5E',
+  surprised: '#38BDF8',
+  sad: '#94A3B8',
+});
+
+const VIDEO_COLOR_MAP = Object.freeze({
+  neutral: '#5EEAD4',
+  sad: '#3B82F6',
+  happy: '#FACC15',
+  angry: '#EF4444',
+  surprise: '#06B6D4',
+  uncertain: '#A855F7',
+});
+
+const AUDIO_COLOR_MAP = Object.freeze({
+  neutral: '#64748B',
+  calm: '#22C55E',
+  happy: '#F59E0B',
+  sad: '#3B82F6',
+  angry: '#EF4444',
+  fearful: '#A855F7',
+  disgust: '#10B981',
+  surprised: '#06B6D4',
+});
+
+// ---------------- HELPERS ----------------
+const clamp01 = (x) => (Number.isFinite(x) ? Math.min(1, Math.max(0, x)) : 0);
+
 const formatTimeTick = (s) => {
-  if (s == null || isNaN(s)) return '';
-  const sec = Math.floor(s);
+  if (s == null || Number.isNaN(Number(s))) return '';
+  const sec = Math.floor(Number(s));
   if (sec < 60) return `${sec}s`;
   const mm = Math.floor(sec / 60);
   const ss = String(sec % 60).padStart(2, '0');
   return `${mm}:${ss}`;
 };
+
 const formatTimeRange = (start, end) => `${formatTimeTick(start)} — ${formatTimeTick(end)}`;
 
 const downloadCSV = (filename, rows) => {
@@ -54,7 +110,7 @@ const downloadCSV = (filename, rows) => {
         r.other2?.score ?? '',
         r.confidence,
         `"${(r.text || '').replace(/"/g, '""')}"`,
-      ].join(',')
+      ].join(','),
     ),
   ].join('\n');
 
@@ -67,7 +123,7 @@ const downloadCSV = (filename, rows) => {
   URL.revokeObjectURL(url);
 };
 
-/* ------------------ Custom tooltip (dedupes payload entries by stable key) ------------------ */
+// ---------------- TOOLTIP COMPONENTS ----------------
 function CustomTooltip({ active, payload, label }) {
   if (!active || !payload || payload.length === 0) return null;
 
@@ -76,7 +132,6 @@ function CustomTooltip({ active, payload, label }) {
 
   for (const p of payload) {
     if (!p) continue;
-    // Use dataKey as the stable identifier
     const rawKey = (p.dataKey ?? p.name ?? '').toString();
     const key = rawKey.toLowerCase().trim();
     if (!key) continue;
@@ -89,7 +144,7 @@ function CustomTooltip({ active, payload, label }) {
   if (items.length === 0) return null;
 
   return (
-    <div style={{ background: '#0f172a', color: '#e6eef8', padding: 10, borderRadius: 8, border: '1px solid #334155' }}>
+    <div style={{ background: UI.panelBg, color: UI.panelText, padding: 10, borderRadius: 8, border: `1px solid ${UI.border}` }}>
       <div style={{ fontSize: 12, marginBottom: 6 }}>{`Time: ${formatTimeTick(Number(label))}`}</div>
       {items.map((it) => (
         <div key={it.key} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginTop: 6 }}>
@@ -104,13 +159,31 @@ function CustomTooltip({ active, payload, label }) {
   );
 }
 
-/* ------------------ EmotionLineGraph (normalized keys, dedupe, tightened Y-axis spacing) ------------------ */
+function WaveformTooltip({ active, payload, label }) {
+  if (!active || !payload?.length) return null;
+  const first = payload.find(Boolean);
+  const val = Number(first?.value ?? 0);
+
+  return (
+    <div style={{ background: UI.panelBg, color: UI.panelText, padding: 10, borderRadius: 8, border: `1px solid ${UI.border}` }}>
+      <div style={{ fontSize: 12, marginBottom: 6 }}>{`Time: ${formatTimeTick(Number(label))}`}</div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <div style={{ width: 10, height: 10, background: '#22d3ee', borderRadius: 3 }} />
+          <div>amplitude</div>
+        </div>
+        <div>{val.toFixed(2)}</div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------- TEXT: Line Graph ----------------
 function EmotionLineGraph({ linegraphData, colorMap }) {
   const defaultShape = useMemo(() => ({ video: '', top_emotions: [], data: [] }), []);
   const payload = linegraphData || defaultShape;
   const rawData = useMemo(() => payload.data || [], [payload]);
 
-  // Normalize top emotions: [{ key, label }]
   const topEmotions = useMemo(() => {
     const raw = payload.top_emotions || [];
     const seen = new Set();
@@ -125,7 +198,6 @@ function EmotionLineGraph({ linegraphData, colorMap }) {
     return list;
   }, [payload]);
 
-  // Normalize data keys so dataKey matches normalized keys
   const data = useMemo(() => {
     return (rawData || []).map((pt) => {
       const out = {};
@@ -149,16 +221,7 @@ function EmotionLineGraph({ linegraphData, colorMap }) {
   }, [topEmotions]);
 
   const [visible, setVisible] = useState(initialVis);
-  useEffect(() => setVisible(initialVis), [payload.video]); // reset on new payload
-
-  const [isAnimating, setIsAnimating] = useState(true);
-  const BASE_DURATION = 900;
-  const STAGGER = 160;
-  useEffect(() => {
-    const total = BASE_DURATION + STAGGER * Math.max(0, topEmotions.length - 1);
-    const t = setTimeout(() => setIsAnimating(false), total + 80);
-    return () => clearTimeout(t);
-  }, [topEmotions.length]);
+  useEffect(() => setVisible(initialVis), [payload.video]); // reset when video changes
 
   const latestValue = (emoKey) => {
     if (!data || data.length === 0) return 0;
@@ -168,14 +231,6 @@ function EmotionLineGraph({ linegraphData, colorMap }) {
 
   const toggle = (emoKey) => setVisible((v) => ({ ...v, [emoKey]: !v[emoKey] }));
 
-  const fmtTime = (s) => {
-    if (s == null || isNaN(s)) return '';
-    const sec = Math.floor(s);
-    if (sec < 60) return `${sec}s`;
-    return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
-  };
-
-  // Safe X domain
   const xDomain = useMemo(() => {
     if (!data || data.length === 0) return ['dataMin', 'dataMax'];
     const arr = data.map((d) => Number(d.time ?? 0));
@@ -184,15 +239,13 @@ function EmotionLineGraph({ linegraphData, colorMap }) {
     return [min, max];
   }, [data]);
 
+  const SERIES = topEmotions.filter((t) => visible[t.key]);
+
   return (
     <div className="w-full">
       <div className="bg-slate-800 rounded-lg p-4 shadow-sm border border-slate-700">
         <div className="flex items-start justify-between mb-2">
-          <div>
-            <h4 className="text-white text-lg font-semibold">Intensity Variation</h4>
-            {/* subtitle removed intentionally */}
-          </div>
-
+          <h4 className="text-white text-lg font-semibold">Intensity Variation</h4>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 bg-slate-900 px-2 py-1 rounded">
               {topEmotions.map(({ key, label }) => (
@@ -216,71 +269,55 @@ function EmotionLineGraph({ linegraphData, colorMap }) {
 
         <div style={{ height: 320 }} className="w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart
-              data={data}
-              // tightened left margin so Y axis uses less horizontal space
-              margin={{ top: 10, right: 18, left: 56, bottom: 28 }}
-            >
-              <CartesianGrid stroke="#0b1220" strokeOpacity={0.12} />
-
+            <LineChart data={data} margin={{ top: 10, right: 18, left: 56, bottom: 28 }}>
+              <CartesianGrid stroke={UI.gridStroke} strokeOpacity={UI.gridOpacity} />
               <XAxis
                 dataKey="time"
-                tickFormatter={fmtTime}
+                tickFormatter={formatTimeTick}
                 axisLine={false}
-                tick={{ fill: '#9CA3AF', fontSize: 12 }}
+                tick={{ fill: UI.axisTick, fontSize: 12 }}
                 domain={xDomain}
                 type="number"
                 allowDecimals={false}
               >
-                <Label value="Time (s)" position="insideBottom" offset={-6} fill="#94a3b8" />
+                <Label value="Time (s)" position="insideBottom" offset={-6} fill={UI.axisLabel} />
               </XAxis>
-
-              {/* tighter Y axis width to reduce wasted space */}
               <YAxis
                 ticks={[0, 0.25, 0.5, 0.75, 1]}
                 domain={[0, 1]}
                 tickFormatter={(v) => `${Math.round(v * 100)}%`}
-                tick={{ fill: '#CBD5E1', fontSize: 12 }}
+                tick={{ fill: UI.axisTick2, fontSize: 12 }}
                 axisLine={false}
                 width={64}
                 tickLine={false}
                 type="number"
-                allowDecimals={true}
-                allowDataOverflow={false}
+                allowDecimals
                 tickCount={5}
                 minTickGap={8}
                 yAxisId="main"
               >
-                <Label value="Intensity (%)" angle={-90} position="insideLeft" offset={-6} fill="#94a3b8" />
+                <Label value="Intensity (%)" angle={-90} position="insideLeft" offset={-6} fill={UI.axisLabel} />
               </YAxis>
 
-              <Tooltip
-                content={<CustomTooltip />}
-                cursor={{ stroke: '#1f2937' }}
-                formatter={null}
-                labelFormatter={null}
-              />
+              <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#1f2937' }} />
 
-              {/* Render lines with normalized dataKey (key) and stable label (name) */}
-              {topEmotions.map(({ key, label }, idx) =>
-                visible[key] ? (
-                  <Line
-                    key={`${key}-${idx}`}
-                    type="monotone"
-                    dataKey={key}
-                    name={label}
-                    stroke={colorMap[key] || '#94a3b8'}
-                    strokeWidth={2}
-                    dot={false}
-                    isAnimationActive={isAnimating}
-                    animationDuration={BASE_DURATION}
-                    animationBegin={idx * STAGGER}
-                    activeDot={{ r: 4 }}
-                    connectNulls
-                    yAxisId="main"
-                  />
-                ) : null
-              )}
+              {SERIES.map(({ key, label }, idx) => (
+                <Line
+                  key={`${key}-${idx}`}
+                  type="monotone"
+                  dataKey={key}
+                  name={label}
+                  stroke={TEXT_COLOR_MAP[key] || '#94a3b8'}
+                  strokeWidth={2}
+                  dot={false}
+                  isAnimationActive
+                  animationDuration={900}
+                  animationBegin={idx * 160}
+                  activeDot={{ r: 4 }}
+                  connectNulls
+                  yAxisId="main"
+                />
+              ))}
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -289,24 +326,14 @@ function EmotionLineGraph({ linegraphData, colorMap }) {
   );
 }
 
-/* ------------------ SegmentsTable (unchanged) ------------------ */
+// ---------------- TEXT: Segments Table ----------------
 function SegmentsTable({ segments, onSeek }) {
   const [query, setQuery] = useState('');
   const [sortKey, setSortKey] = useState('start');
   const [sortDir, setSortDir] = useState('asc');
   const [expanded, setExpanded] = useState(null);
 
-  const colorMap = {
-    neutral: '#60A5FA',     // soft cyan-blue
-    admiration: '#FBBF24',  // golden amber
-    annoyance: '#F87171',   // coral red
-    approval: '#34D399',    // mint green
-    love: '#FB7185',        // rose pink
-    curiosity: '#A78BFA',   // violet
-    fearful: '#F43F5E',     // vivid magenta-red
-    surprised: '#38BDF8',   // bright sky blue
-    sad: '#37dfb2ff',         // muted blue-gray
-  };
+  const colorMap = TEXT_COLOR_MAP;
 
   const rows = useMemo(() => {
     return (segments || []).map((s, i) => {
@@ -365,7 +392,7 @@ function SegmentsTable({ segments, onSeek }) {
           />
           <button
             className="px-3 py-1 text-sm rounded bg-slate-700 text-slate-200 hover:bg-slate-600"
-            onClick={() => downloadCSV(`${mockData.video || 'data'}_segments.csv`, filtered)}
+            onClick={() => downloadCSV(`segments.csv`, filtered)}
           >
             Export CSV
           </button>
@@ -495,119 +522,226 @@ function SegmentsTable({ segments, onSeek }) {
   );
 }
 
-/* ------------------ EmotionCard (final) ------------------ */
-export default function EmotionCard() {
+// ---------------- VIDEO: Timeline ----------------
+function VideoEmotionTimelineChart({ bars, colorMap }) {
+  const cleaned = useMemo(() => {
+    const list = Array.isArray(bars) ? bars : [];
+    return list
+      .map((b) => ({
+        start: Number(b.start ?? 0),
+        end: Number(b.end ?? (b.start ?? 0) + 0.01),
+        emo: (b.emo || 'neutral').toLowerCase(),
+        conf: clamp01(Number(b.conf ?? 0)),
+      }))
+      .filter((b) => Number.isFinite(b.start) && Number.isFinite(b.end) && b.end > b.start)
+      .sort((a, b) => a.start - b.start);
+  }, [bars]);
+
+  const xDomain = useMemo(() => {
+    if (!cleaned.length) return [0, 1];
+    const minStart = cleaned[0].start;
+    const maxEnd = Math.max(...cleaned.map((b) => b.end));
+    return [minStart, maxEnd];
+  }, [cleaned]);
+
+  const baselineData = useMemo(
+    () => cleaned.flatMap((b) => [{ start: b.start, base: 0 }, { start: b.end, base: 0 }]),
+    [cleaned],
+  );
+
+  return (
+    <div className="bg-slate-800 rounded-lg p-4 border border-slate-700 mb-6">
+      <h4 className="text-white text-lg font-semibold mb-3">Emotion Confidence Over Time</h4>
+
+      <div style={{ width: '100%', height: 260 }}>
+        <ResponsiveContainer>
+          <ComposedChart data={baselineData} margin={{ top: 10, right: 20, left: 60, bottom: 30 }}>
+            <CartesianGrid stroke={UI.gridStroke} strokeOpacity={UI.gridOpacity} />
+
+            <XAxis
+              dataKey="start"
+              type="number"
+              domain={xDomain}
+              tickFormatter={formatTimeTick}
+              tick={{ fill: UI.axisTick, fontSize: 12 }}
+              label={{ value: 'Time (s)', position: 'insideBottom', offset: -5, fill: UI.axisLabel }}
+            />
+
+            <YAxis
+              domain={[0, 1]}
+              yAxisId="main"
+              tickFormatter={(v) => `${Math.round(v * 100)}%`}
+              tick={{ fill: UI.axisTick2, fontSize: 12 }}
+              label={{ value: 'Confidence', angle: -90, position: 'insideLeft', fill: UI.axisLabel, offset: -35 }}
+            />
+
+            <Tooltip
+              content={({ active, label }) => {
+                if (!active) return null;
+                const x = Number(label);
+                if (!Number.isFinite(x)) return null;
+                const seg = cleaned.find((d) => x >= d.start && x <= d.end) || cleaned[0];
+                if (!seg) return null;
+                return (
+                  <div style={{ background: UI.panelBg, color: UI.panelText, padding: 10, borderRadius: 8, border: `1px solid ${UI.border}` }}>
+                    <div style={{ fontSize: 12, marginBottom: 6 }}>{`${formatTimeTick(seg.start)} — ${formatTimeTick(seg.end)}`}</div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+                      <span style={{ textTransform: 'capitalize' }}>{seg.emo}</span>
+                      <span>{(seg.conf * 100).toFixed(1)}%</span>
+                    </div>
+                  </div>
+                );
+              }}
+            />
+
+            <Area type="monotone" dataKey="base" stroke="none" fill="none" isAnimationActive={false} yAxisId="main" />
+
+            {cleaned.map((d, i) => (
+              <ReferenceArea
+                key={`${d.start}-${d.end}-${i}`}
+                x1={d.start}
+                x2={d.end}
+                y1={0}
+                y2={Math.max(0.02, d.conf)}
+                yAxisId="main"
+                fill={colorMap[d.emo] || '#64748B'}
+                fillOpacity={Math.max(0.45, Math.min(0.9, d.conf * 0.85 + 0.25))}
+                stroke="none"
+              />
+            ))}
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm">
+        {Array.from(new Set(cleaned.map((d) => d.emo))).map((emo) => (
+          <div key={emo} className="flex items-center gap-2">
+            <span className="inline-block w-3 h-3 rounded" style={{ background: colorMap[emo] || '#64748B' }} />
+            <span className="capitalize text-slate-200">{emo}</span>
+          </div>
+        ))}
+      </div>
+
+      {!cleaned.length && <div className="text-sm text-slate-400 mt-2">No video timeline data available.</div>}
+    </div>
+  );
+}
+
+// ---------------- MAIN: EmotionCard (accepts `data`) ----------------
+export default function EmotionCard({ data = {} }) {
   const tabs = [
     { id: 'audio', label: 'Audio Analysis' },
     { id: 'video', label: 'Video Analysis' },
     { id: 'text', label: 'Text Analysis' },
   ];
-  const [active, setActive] = useState('audio');
 
-  const linegraph = useMemo(
-    () =>
-      mockData?.emotion?.linegraph ||
-      { video: mockData.video || '', top_emotions: [], data: mockData?.emotion?.timeline || [] },
-    []
-  );
+  const [active, setActive] = useState('video');
+
+  // single source of truth for seeking (used by SegmentsTable)
+  const videoRef = useRef(null);
+  const seekTo = (t) => {
+    if (videoRef.current && Number.isFinite(Number(t))) {
+      try {
+        videoRef.current.currentTime = Number(t);
+        videoRef.current.play?.().catch(() => {});
+      } catch {
+        /* no-op */
+      }
+    }
+  };
+
+  // Harden autoplay: attempt best-effort play
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    const tryPlay = () => v.play?.().catch(() => {});
+    if (active === 'video') {
+      v.addEventListener('canplay', tryPlay, { once: true });
+      tryPlay();
+    }
+    return () => {
+      v?.removeEventListener?.('canplay', tryPlay);
+    };
+  }, [active]);
+
+  // Use provided data (live) — keep defensive defaults
+  const actual = (data && Object.keys(data).length > 0) ? data : { models: {} };
+
+  const rafdb = actual?.models?.rafdb ?? {};
+  const rav = actual?.models?.ravdess ?? {};
+  const go = actual?.models?.goemotions ?? {};
+
+  // Audio / RAVDESS
+  const waveform = rav?.waveform ?? { frames: { time: [], envelope: [] }, axes: {} };
+  const results = rav?.results ?? { predicted_emotion: '-', probabilities: {} };
+  const predicted = results?.predicted_emotion || '-';
+  const probEntries = useMemo(() => {
+    const probs = results?.probabilities || {};
+    return Object.entries(probs).map(([label, value]) => ({
+      name: label,
+      value: Number(value || 0),
+    }));
+  }, [results]);
+
+  // Text / GoEmotions
+  const linegraph = useMemo(() => go?.linegraph ?? { video: '', top_emotions: [], data: [] }, [go]);
 
   const segments = useMemo(() => {
-    if (mockData?.segments && Array.isArray(mockData.segments) && mockData.segments.length) return mockData.segments;
-    if (mockData?.emotion?.segments && Array.isArray(mockData.emotion.segments) && mockData.emotion.segments.length)
-      return mockData.emotion.segments;
+    if (Array.isArray(go?.tabledata?.segments) && go.tabledata.segments.length) {
+      return go.tabledata.segments;
+    }
+    const lg = go?.linegraph?.data || [];
+    const topEmotions = go?.linegraph?.top_emotions || [];
+    if (!lg.length) return [];
 
-    const lg = mockData?.emotion?.linegraph?.data || mockData?.emotion?.timeline || [];
-    const topEmotions = mockData?.emotion?.linegraph?.top_emotions || [];
-
-    if (!Array.isArray(lg) || lg.length === 0) return [];
+    const dedup = Array.from(new Set(topEmotions.map((e) => (e ?? '').toLowerCase().trim()).filter(Boolean)));
 
     return lg.map((pt, i) => {
       const start = Number(pt.time ?? 0);
-      const next = lg[i + 1];
-      const end = next ? Number(next.time ?? start + 1) : start + 1;
+      const end = Number(lg[i + 1]?.time ?? start + 1);
 
-      const emotions = [];
-      const intensities = [];
+      const emotions = (dedup.length ? dedup : Object.keys(pt).filter((k) => k !== 'time'))
+        .map((k) => k.toLowerCase().trim());
+      const intensities = emotions.map((k) => Number(pt[k] ?? 0));
 
-      if (topEmotions.length) {
-        // use deduped topEmotions in same order
-        const dedup = Array.from(new Set(topEmotions));
-        dedup.forEach((emo) => {
-          emotions.push(emo);
-          intensities.push(Number(pt[emo] ?? 0));
-        });
-      } else {
-        Object.keys(pt).forEach((k) => {
-          if (k === 'time') return;
-          const v = Number(pt[k]);
-          if (!isNaN(v)) {
-            emotions.push(k);
-            intensities.push(v);
-          }
-        });
-      }
+      const confidence =
+        typeof pt.confidence === 'number' ? pt.confidence : intensities.length ? Math.max(...intensities) : 0;
 
-      const confidence = typeof pt.confidence === 'number' ? pt.confidence : Math.max(...(intensities.length ? intensities : [0]));
+      return { start, end, text: pt.text ?? '', emotions, intensities, confidence };
+    });
+  }, [go]);
 
+  // Video / RAF-DB
+  const videoTimeline = rafdb?.timeline || [];
+  const videoDuration = Number(rafdb?.duration_s ?? 0);
+
+  const videoBars = useMemo(() => {
+    if (!Array.isArray(videoTimeline) || videoTimeline.length === 0) return [];
+    const out = videoTimeline.map((pt, i) => {
+      const start = Number(pt.t ?? pt.start ?? 0);
+      const endRaw = Number(videoTimeline[i + 1]?.t ?? videoTimeline[i + 1]?.start ?? NaN);
+      const end = Number.isFinite(endRaw)
+        ? endRaw
+        : Number.isFinite(videoDuration) && videoDuration > start
+        ? videoDuration
+        : start + 0.5;
       return {
         start,
         end,
-        text: pt.text ?? '',
-        emotions,
-        intensities,
-        confidence,
+        width: Math.max(0, end - start),
+        emo: pt.emo?.toLowerCase?.() || 'neutral',
+        conf: clamp01(Number(pt.conf ?? pt.confidence ?? 0)),
       };
     });
-  }, []);
+    return out.filter((d) => d.end > d.start).sort((a, b) => a.start - b.start);
+  }, [videoTimeline, videoDuration]);
 
-  const colorMap = {
-    neutral: '#60A5FA',     // soft cyan-blue
-    admiration: '#FBBF24',  // golden amber
-    annoyance: '#F87171',   // coral red
-    approval: '#34D399',    // mint green
-    love: '#FB7185',        // rose pink
-    curiosity: '#A78BFA',   // violet
-    fearful: '#F43F5E',     // vivid magenta-red
-    surprised: '#38BDF8',   // bright sky blue
-    sad: '#94A3B8',         // muted blue-gray
-  };
-
-  const waveform = mockData?.audioWaveform;
-
-  // --- convert emotionIntensities -> linegraph shape ----
-  const convertEmotionIntensities = (ei) => {
-    if (!ei || !ei.frames) return { video: '', top_emotions: [], data: [] };
-    const times = ei.frames.time || [];
-    const ints = ei.frames.intensities || [];
-    const emotions = ei.emotions || [];
-
-    // build `data` array: { time: <num>, emo1: <val>, emo2: <val>, ... }
-    const data = times.map((t, i) => {
-      const row = { time: Number(t) };
-      const vals = ints[i] || [];
-      emotions.forEach((e, k) => {
-        row[e.toLowerCase().trim()] = Number(vals[k] ?? 0);
-      });
-      return row;
-    });
-
-    // keep top_emotions normalized (lowercase keys to match conversion)
-    const top_emotions = emotions.map((e) => e.toLowerCase().trim());
-
-    return {
-      video: mockData.video || '',
-      top_emotions,
-      data,
-    };
-  };
-
-  const emotionIntensitiesLinegraph = useMemo(() => convertEmotionIntensities(mockData.emotionIntensities), []);
-
-  // placeholder seek handler (integration point)
-  const handleSeek = (t) => {
-    // integrate with your video player: playerRef.current?.seek(t)
-    console.log('seek to', t);
-  };
+  // attempt to find a playable video URL in the merged JSON (optional)
+  // Common patterns: rafdb.annotated_video_url or models.rafdb.annotated_video
+  const videoSrc =
+    (rafdb && (rafdb.annotated_video_url || rafdb.annotated_video)) ||
+    (actual && actual.video_url) || // generic field if backend provides
+    null; // no client-side fallback — keep it null to avoid autoplay errors
 
   return (
     <section className="bg-slate-800 rounded-xl p-6 w-full shadow-lg border border-slate-700">
@@ -630,105 +764,136 @@ export default function EmotionCard() {
       </div>
 
       <div className="bg-slate-900 rounded-lg p-6 text-slate-200 min-h-[420px] md:min-h-[480px]">
-          {active === 'audio' && (
-            <div className="rounded-lg bg-slate-800 p-4 shadow border border-slate-700">
-              <h4 className="text-cyan-400 text-lg font-semibold mb-3">Acoustic Waveform</h4>
+        {active === 'audio' && (
+          <div className="rounded-lg bg-slate-800 p-4 shadow border border-slate-700">
+            <h4 className="text-cyan-400 text-lg font-semibold mb-3">Acoustic Waveform</h4>
 
-              <div className="text-slate-400 text-sm mb-4">
-                Sample Rate: {waveform?.meta?.sr} Hz · Frames: {waveform?.meta?.num_frames}
-              </div>
-
-              <ResponsiveContainer width="100%" height={260}>
-                <ComposedChart
-                  data={(waveform?.frames?.time || []).map((t, i) => ({
-                    time: t,
-                    amplitude: waveform?.frames?.envelope?.[i] ?? 0,
-                  }))}
-                  margin={{ top: 10, right: 20, left: 60, bottom: 30 }}
-                >
-                  {/*  Cyan Gradient Definition */}
-                  <defs>
-                    <linearGradient id="cyanGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#22d3ee" stopOpacity={0.8} />
-                      <stop offset="100%" stopColor="#22d3ee" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-
-                  <CartesianGrid stroke="#0b1220" strokeOpacity={0.15} />
-
-                  <XAxis
-                    dataKey="time"
-                    tick={{ fill: '#9CA3AF', fontSize: 12 }}
-                    label={{
-                      value: waveform?.axes?.x_label || 'Time (s)',
-                      position: 'insideBottom',
-                      offset: -5,
-                      fill: '#94a3b8',
-                    }}
-                  />
-
-                  <YAxis
-                    tickFormatter={(v) => v.toFixed(2)}
-                    tick={{ fill: '#CBD5E1', fontSize: 12 }}
-                    label={{
-                      value: waveform?.axes?.y_label || 'Normalized Amplitude',
-                      angle: -90,
-                      position: 'insideLeft',
-                      fill: '#94a3b8',
-                      style: { textAnchor: 'middle' },
-                      offset: -35,
-                    }}
-                    domain={[0, 1]}
-                  />
-
-                  <Tooltip
-                    formatter={(v) => v.toFixed(2)}
-                    labelFormatter={(v) => `${v}s`}
-                    contentStyle={{
-                      backgroundColor: '#0f172a',
-                      borderColor: '#334155',
-                    }}
-                  />
-
-                  {/* ✅ AREA — Visible Cyan Gradient */}
-                  <Area
-                    type="monotone"
-                    dataKey="amplitude"
-                    stroke="none"
-                    fill="url(#cyanGradient)"
-                    fillOpacity={0.6}
-                    isAnimationActive={true}
-                    animationDuration={1400}
-                    animationBegin={0}
-                  />
-
-                  {/* ✅ LINE — Animated Cyan Curve */}
-                  <Line
-                    type="monotone"
-                    dataKey="amplitude"
-                    stroke="#22d3ee"
-                    strokeWidth={2.5}
-                    dot={false}
-                    isAnimationActive={true}
-                    animationDuration={1400}
-                    animationBegin={0}
-                  />
-                </ComposedChart>
-              </ResponsiveContainer>
-              <div className="mt-4">
-                <EmotionLineGraph linegraphData={emotionIntensitiesLinegraph} colorMap={colorMap} />
-              </div>
-              
+            <div className="text-slate-400 text-sm mb-4">
+              Sample Rate: {waveform?.meta?.sr ?? '—'} Hz · Frames: {waveform?.meta?.original_num_frames ?? '—'}
             </div>
-          )}
 
-        {active === 'video' && <div className="text-slate-400 text-sm">Video analysis results will appear here.</div>}
+            <ResponsiveContainer width="100%" height={260}>
+              <ComposedChart
+                data={(waveform?.frames?.time || []).map((t, i) => ({
+                  time: t,
+                  amplitude: waveform?.frames?.envelope?.[i] ?? 0,
+                }))}
+                margin={{ top: 10, right: 20, left: 60, bottom: 30 }}
+              >
+                <defs>
+                  <linearGradient id="cyanGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#22d3ee" stopOpacity={0.8} />
+                    <stop offset="100%" stopColor="#22d3ee" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+
+                <CartesianGrid stroke={UI.gridStroke} strokeOpacity={UI.gridOpacity} />
+
+                <XAxis
+                  dataKey="time"
+                  tick={{ fill: UI.axisTick, fontSize: 12 }}
+                  tickFormatter={formatTimeTick}
+                  interval="preserveStartEnd"
+                  label={{ value: waveform?.axes?.x_label || 'Time (s)', position: 'insideBottom', offset: -5, fill: UI.axisLabel }}
+                />
+
+                <Tooltip content={<WaveformTooltip />} />
+
+                <YAxis
+                  tickFormatter={(v) => v.toFixed(2)}
+                  tick={{ fill: UI.axisTick2, fontSize: 12 }}
+                  label={{
+                    value: waveform?.axes?.y_label || 'Normalized Amplitude',
+                    angle: -90,
+                    position: 'insideLeft',
+                    fill: UI.axisLabel,
+                    style: { textAnchor: 'middle' },
+                    offset: -35,
+                  }}
+                  domain={[0, 1]}
+                />
+
+                <Area type="monotone" dataKey="amplitude" stroke="none" fill="url(#cyanGradient)" fillOpacity={0.6} isAnimationActive animationDuration={1200} />
+                <Line type="monotone" dataKey="amplitude" stroke="#22d3ee" strokeWidth={2.5} dot={false} isAnimationActive animationDuration={1200} />
+              </ComposedChart>
+            </ResponsiveContainer>
+
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
+              <div className="md:col-span-1">
+                <div className="bg-slate-900 border border-slate-700 rounded-lg p-4">
+                  <div className="text-slate-400 text-sm">Predicted Emotion</div>
+                  <div className="mt-1 text-2xl font-bold text-white capitalize">{predicted}</div>
+                  <div className="mt-2 text-slate-400 text-sm">
+                    File: <span className="text-slate-200">{(results?.file || '').split('/').pop() || '—'}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="md:col-span-2">
+                <div className="bg-slate-900 border border-slate-700 rounded-lg p-4">
+                  <div className="text-slate-200 font-semibold mb-2">Class Probabilities</div>
+                  <div style={{ width: '100%', height: 260 }}>
+                    <ResponsiveContainer>
+                      <PieChart>
+                        <Pie data={probEntries} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={2} isAnimationActive>
+                          {probEntries.map((entry, idx) => (
+                            <Cell key={`cell-${idx}`} fill={(AUDIO_COLOR_MAP[entry.name?.toLowerCase?.()] || '#94A3B8')} />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          formatter={(v, name) => [`${(Number(v) * 100).toFixed(2)}%`, name]}
+                          contentStyle={{ background: 'rgba(0,0,0,0)', border: 'none', boxShadow: 'none' }}
+                          labelStyle={{ display: 'none' }}
+                          itemStyle={{ color: '#ffffff', fontWeight: 500, fontSize: '13px', textShadow: '0px 0px 6px rgba(0,0,0,0.6)' }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm">
+                    {probEntries.map((e) => (
+                      <div key={e.name} className="flex items-center gap-2">
+                        <span className="inline-block w-3 h-3 rounded" style={{ background: AUDIO_COLOR_MAP[e.name?.toLowerCase?.()] || '#94A3B8' }} />
+                        <span className="capitalize text-slate-200">{e.name}</span>
+                        <span className="text-slate-400">{(e.value * 100).toFixed(2)}%</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {active === 'video' && (
+          <Fragment>
+            <div className="mb-4">
+              {videoSrc ? (
+                <video
+                  ref={videoRef}
+                  src={videoSrc}
+                  controls
+                  muted
+                  playsInline
+                  // do NOT autoPlay if no explicit user gesture in most browsers — best-effort
+                  className="w-full h-64 object-contain bg-black"
+                />
+              ) : (
+                <div className="w-full h-64 flex items-center justify-center bg-black text-slate-400">
+                  Annotated video not available — expose `models.rafdb.annotated_video_url` from backend to enable playback.
+                </div>
+              )}
+            </div>
+
+            <VideoEmotionTimelineChart bars={videoBars} colorMap={VIDEO_COLOR_MAP} />
+          </Fragment>
+        )}
 
         {active === 'text' && (
-          <>
-            <EmotionLineGraph linegraphData={linegraph} colorMap={colorMap} />
-            <SegmentsTable segments={segments} onSeek={handleSeek} />
-          </>
+          <Fragment>
+            <EmotionLineGraph linegraphData={linegraph} colorMap={TEXT_COLOR_MAP} />
+            <SegmentsTable segments={segments} onSeek={seekTo} />
+          </Fragment>
         )}
       </div>
     </section>
