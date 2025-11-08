@@ -736,12 +736,14 @@ export default function EmotionCard({ data = {} }) {
     return out.filter((d) => d.end > d.start).sort((a, b) => a.start - b.start);
   }, [videoTimeline, videoDuration]);
 
-  // attempt to find a playable video URL in the merged JSON (optional)
-  // Common patterns: rafdb.annotated_video_url or models.rafdb.annotated_video
-  const videoSrc =
-    (rafdb && (rafdb.annotated_video_url || rafdb.annotated_video)) ||
-    (actual && actual.video_url) || // generic field if backend provides
-    null; // no client-side fallback — keep it null to avoid autoplay errors
+  // video fetched from backend
+  const backendBase = "http://localhost:5000"; // backend origin
+  const rawUrl =
+    rafdb?.annotated_video_url ||
+    rafdb?.annotated_video ||
+    actual?.video_url ||
+    null;
+  const videoSrc = rawUrl ? backendBase + rawUrl : null;
 
   return (
     <section className="bg-slate-800 rounded-xl p-6 w-full shadow-lg border border-slate-700">
@@ -870,6 +872,7 @@ export default function EmotionCard({ data = {} }) {
             <div className="mb-4">
               {videoSrc ? (
                 <video
+                  key={videoSrc} 
                   ref={videoRef}
                   src={videoSrc}
                   controls
@@ -877,6 +880,7 @@ export default function EmotionCard({ data = {} }) {
                   playsInline
                   // do NOT autoPlay if no explicit user gesture in most browsers — best-effort
                   className="w-full h-64 object-contain bg-black"
+                  onError={(e) => console.error('video load error', e)}
                 />
               ) : (
                 <div className="w-full h-64 flex items-center justify-center bg-black text-slate-400">
