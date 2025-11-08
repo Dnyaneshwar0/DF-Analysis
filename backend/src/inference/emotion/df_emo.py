@@ -147,9 +147,11 @@ def merge_all(stem: str, raf_summary: Path, goem: dict, ravdess: tuple[Path, Pat
         }
     }
 
-    # RAF summary + annotated video URL
+    # RAF summary + annotated video URL (prefer web-safe _web.mp4 if present)
     raf_data = json.loads(raf_summary.read_text())
-    raf_data["annotated_video_url"] = f"/emotion_media/out_{stem}.mp4"
+    web_path = OUT_DIR / f"out_{stem}_web.mp4"
+    mp4_name = f"out_{stem}_web.mp4" if web_path.exists() else f"out_{stem}.mp4"
+    raf_data["annotated_video_url"] = f"/emotion_media/{mp4_name}"
     merged["models"]["rafdb"] = raf_data
 
     # GoEmotions
@@ -173,7 +175,8 @@ def merge_all(stem: str, raf_summary: Path, goem: dict, ravdess: tuple[Path, Pat
     out_json.write_text(json.dumps(merged, indent=2))
     print(f"[OK] Wrote merged summary: {out_json.name}")
 
-    keep = {str(out_json), str(OUT_DIR / f"out_{stem}.mp4")}
+    # keep merged + chosen mp4
+    keep = {str(out_json), str(OUT_DIR / mp4_name)}
     for f in OUT_DIR.glob(f"*{stem}*.json"):
         if str(f) not in keep:
             try:
