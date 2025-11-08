@@ -118,7 +118,7 @@ npm start
     <td align="center">
       <img src="https://github.com/Dnyaneshwar0.png" width="90" style="border-radius:50%;" />
       <br/>
-      <sub><b>Parth Gujarkar</b></sub>
+      <sub><b>Parth Shirish Gujarkar</b></sub>
       <br/>
       <a href="https://github.com/Dnyaneshwar0">@Dnyaneshwar0</a>
     </td>
