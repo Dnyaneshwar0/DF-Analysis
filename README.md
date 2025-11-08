@@ -112,19 +112,32 @@ npm start
 
 ## Contributors
 
-<a href="https://github.com/Dnyaneshwar0">
-  <img src="https://avatars.githubusercontent.com/u/97013118?s=48&v=4" width="60" style="border-radius:50%;" alt="Parth Gujarkar" />
-</a>
-<a href="https://github.com/blast678">
-  <img src="https://avatars.githubusercontent.com/u/98542059?v=4" width="60" style="border-radius:50%;" alt="Mithilesh Deshmukh" />
-</a>
-<a href="https://github.com/ampm14">
-  <img src="https://avatars.githubusercontent.com/u/162469695?v=4" width="60" style="border-radius:50%;" alt="Aishwarya Mhatre" />
-</a>
 
-**Parth Gujarkar** – [@Dnyaneshwar0](https://github.com/Dnyaneshwar0)  
-**Mithilesh Deshmukh** – [@blast678](https://github.com/blast678)  
-**Aishwarya Mhatre** – [@ampm14](https://github.com/ampm14)
+<table>
+  <tr>
+    <td align="center">
+      <img src="https://github.com/Dnyaneshwar0.png" width="90" style="border-radius:50%;" />
+      <br/>
+      <sub><b>Parth Gujarkar</b></sub>
+      <br/>
+      <a href="https://github.com/Dnyaneshwar0">@Dnyaneshwar0</a>
+    </td>
+    <td align="center">
+      <img src="https://github.com/blast678.png" width="90" style="border-radius:50%;" />
+      <br/>
+      <sub><b>Mithilesh Deshmukh</b></sub>
+      <br/>
+      <a href="https://github.com/blast678">@blast678</a>
+    </td>
+    <td align="center">
+      <img src="https://github.com/ampm14.png" width="90" style="border-radius:50%;" />
+      <br/>
+      <sub><b>Aishwarya Mhatre</b></sub>
+      <br/>
+      <a href="https://github.com/ampm14">@ampm14</a>
+    </td>
+  </tr>
+</table>
 
 
 ```
