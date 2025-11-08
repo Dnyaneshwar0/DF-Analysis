@@ -1,56 +1,130 @@
-# DeepFake Reverse Engineering & Emotional Analysis
+# AffectForensics
 
-### Directory Structure:
-```
-<to be updated>
-```
+AffectForensics is an multimodal video forensics system that integrates:
+- Deepfake detection
+- Manipulation reverse-engineering
+- Multimodal emotional signal interpretation (face, voice, and text)
 
-****Make sure to replace placeholders and update dir struc as you commit changes***
+The system outputs a unified forensic report with supporting evidence rather than a single binary label.  
+This enables diagnostic interpretation instead of opaque classification.
 
-## Backend Integration Update [1/11/25]: 
+---
 
-### Run Main App with:
-```
-python app.py
-```
+## Web Interface
 
-### Example CURL req to backend like:
-```
-curl -X POST -F "file=@D:/Projects/DF-Analysis/backend/data/detection/orig.mp4" http://localhost:5000/detect/analyze
+| Component | Framework       | Purpose                              |
+|-----------|-----------------|--------------------------------------|
+| Backend   | Flask (Python)  | Model inference + HTTP API           |
+| Frontend  | React + TailwindCSS | Visualization and report analysis UI |
 
+Local runtime:
+- Backend → `http://localhost:5000`
+- Frontend → `http://localhost:3000`
 
-curl -X POST -F "file=@D:/Projects/DF-Analysis/backend/data/detection/manip.mp4" http://localhost:5000/reveng/analyze
-```
+---
 
+## Installation
 
-# *Imp info regarding current df_detect.keras model:
+**WSL 2 is strongly recommended** for Windows users.
 
-For this error:
-```
-ValueError: Exception encountered when calling TimeDistributed.call().
+### WSL 2 Setup (Recommended)
 
-Cannot convert '15' to a shape.
-
-Arguments received by TimeDistributed.call():
-  • args=('<KerasTensor shape=(None, 15, 96, 96, 3), dtype=float32, sparse=False, ragged=False, name=input_layer>',)
-  • kwargs={'mask': 'None'}
+```powershell
+# Run in PowerShell (Admin)
+wsl --install -d Ubuntu
 ```
 
-🧠 Why this happens
+Then in **Ubuntu terminal**:
 
-When you saved your model in Colab using:
-```
-model.save('deepfake_method_classifier.keras')
-```
-
-and later reloaded it in inference using:
-```
-tf.keras.models.load_model(path, compile=False)
+```bash
+sudo apt update && sudo apt install -y \
+    ffmpeg tesseract-ocr tesseract-ocr-eng \
+    libsndfile1 libgl1 libglib2.0-0 \
+    libsm6 libxrender1 libxext6
 ```
 
-the custom `TimeDistributed(MobileNetV2(...))` layer often fails to rebuild its input shape metadata cleanly across TF versions.
+---
 
-It ends up interpreting your `Input(shape=(frames, img_size, img_size, 3))` as
-`Input(shape=frames)` — i.e., it lost the “tuple-ness” and treats `15` as a scalar.
+### Windows Native (Not Recommended)
 
-This is a known TensorFlow serialization quirk for nested models with `TimeDistributed`.
+You'll need to manually install:
+
+- [FFmpeg](https://ffmpeg.org/download.html#build-windows)
+- [Tesseract OCR](https://github.com/UB-Mannheim/tesseract/wiki)
+
+> Add `ffmpeg` and `tesseract` to your `PATH`.
+
+---
+
+### Backend
+```bash
+cd backend
+python3 -m venv venv
+source venv/bin/activate        # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+python src/app.py
+```
+
+### Frontend
+
+```bash
+cd frontend
+npm install
+npm start
+```
+
+---
+
+## Repository Structure (Overview)
+
+```text
+.
+├── backend/
+│   ├── src/
+│   │   ├── app.py                 # Flask backend entry point
+│   │   ├── routes/                # REST API endpoints
+│   │   └── inference/
+│   │       ├── detection/         # Deepfake classifier
+│   │       ├── reverseEng/        # Manipulation pattern analysis
+│   │       └── emotion/           # Multimodal emotion (video/audio/text)
+│   ├── models/                    # Pre-trained model weights
+│   └── data/                      # Local cache & annotated output storage
+│
+└── frontend/
+    └── src/
+        ├── pages/                 # Workflow: Upload → Analysis → Results
+        ├── components/            # Reusable UI + visualization blocks
+        └── App.js                 # React app root
+```
+---
+
+## Methodology Summary
+
+| Subsystem           | Dataset / Basis                        | Operational Output                        |
+|---------------------|----------------------------------------|-------------------------------------------|
+| Deepfake Detection  | Convolutional face-sequence classifier | Authenticity + confidence score           |
+| Reverse Engineering | Manipulation signature comparison      | Predicted manipulation origin/type        |
+| Emotion (Video)     | RAF-DB                                 | Temporal facial affect timeline           |
+| Emotion (Audio)     | RAVDESS / CREMA-D                      | Acoustic emotion probability distribution |
+| Emotion (Text)      | GoEmotions                             | Semantic affect inference from language   |
+
+
+
+## Contributors
+
+<a href="https://github.com/Dnyaneshwar0">
+  <img src="https://avatars.githubusercontent.com/u/106135663?v=4" width="60" style="border-radius:50%;" alt="Parth Gujarkar" />
+</a>
+<a href="https://github.com/blast678">
+  <img src="https://avatars.githubusercontent.com/u/106135663?v=4" width="60" style="border-radius:50%;" alt="Mithilesh Deshmukh" />
+</a>
+<a href="https://github.com/ampm14">
+  <img src="https://avatars.githubusercontent.com/u/106135663?v=4" width="60" style="border-radius:50%;" alt="Aishwarya Mhatre" />
+</a>
+
+**Parth Gujarkar** – [@Dnyaneshwar0](https://github.com/Dnyaneshwar0)  
+**Mithilesh Deshmukh** – [@blast678](https://github.com/blast678)  
+**Aishwarya Mhatre** – [@ampm14](https://github.com/ampm14)
+
+
+```
