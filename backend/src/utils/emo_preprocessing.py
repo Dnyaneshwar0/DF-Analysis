@@ -1,10 +1,13 @@
+#!/usr/bin/env python3
 # Unified preprocessing pipeline for emotion analysis (OCR improvements + stable config)
 # Changes made:
+# - Cross-platform FFmpeg resolution: bundled ffmpeg.exe on Windows if present, otherwise system 'ffmpeg'.
 # - Force CPU-only environment for PyTorch/EasyOCR
 # - Show stage-level progress for subprocess calls
 # - Replace slow spell-correction with a fast conservative version
 # - Reduced fallback wordlist sizes for speed
 # NOTE: Save this as src/utils/emo_preprocessing_fixed.py and run from your repo root.
+
 from __future__ import annotations
 import argparse
 import json
@@ -13,18 +16,22 @@ import shutil
 import subprocess
 import sys
 import os
-os.environ["PYTHONUTF8"] = "1"
-os.environ["PYTHONIOENCODING"] = "utf-8"
-# Optional: also patch sys.stdout to ignore encoding errors
-sys.stdout.reconfigure(encoding='utf-8', errors='ignore')
-sys.stderr.reconfigure(encoding='utf-8', errors='ignore')
-
+import platform
 from dataclasses import dataclass
 from difflib import SequenceMatcher, get_close_matches
 from pathlib import Path
 from typing import List, Optional, Dict
 
-# Make sure processes use CPU only (avoid accidental CUDA probes)
+# --- I/O encoding hygiene (handles odd console encodings cleanly) ---
+os.environ["PYTHONUTF8"] = "1"
+os.environ["PYTHONIOENCODING"] = "utf-8"
+try:
+    sys.stdout.reconfigure(encoding='utf-8', errors='ignore')
+    sys.stderr.reconfigure(encoding='utf-8', errors='ignore')
+except Exception:
+    pass  # Not all environments expose reconfigure
+
+# --- Make sure processes use CPU only (avoid accidental CUDA probes) ---
 os.environ.setdefault("CUDA_VISIBLE_DEVICES", "")
 os.environ.setdefault("TORCH_DEVICE", "cpu")
 
@@ -37,21 +44,42 @@ try:
 except Exception as e:
     raise SystemExit("Pillow is required (pip install pillow).") from e
 
-# Paths
+# --- Paths ---
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_INPUT_DIR = REPO_ROOT / "data" / "emotion" / "input" / "raw"
 DEFAULT_PROCESSED_DIR = REPO_ROOT / "data" / "emotion" / "input" / "processed"
 DEFAULT_TMP_ROOT = DEFAULT_PROCESSED_DIR / "tmp"
-FFMPEG_PATH = REPO_ROOT / "ffmpeg" / "bin" / "ffmpeg.exe"
 
-# Utils
+# --- Cross-platform FFmpeg resolution ---
+def _resolve_ffmpeg_path() -> str:
+    """
+    Windows: prefer bundled REPO_ROOT/ffmpeg/bin/ffmpeg.exe if it exists; else fall back to 'ffmpeg' in PATH.
+    Linux/macOS: use system 'ffmpeg' in PATH.
+    Environment override: if FFMPEG env var is set, use that.
+    """
+    env_override = os.environ.get("FFMPEG")
+    if env_override:
+        return env_override
+
+    system = platform.system().lower()
+    if system == "windows":
+        candidate = REPO_ROOT / "ffmpeg" / "bin" / "ffmpeg.exe"
+        if candidate.exists():
+            return str(candidate)
+        return "ffmpeg"
+    else:
+        return "ffmpeg"
+
+FFMPEG_PATH = _resolve_ffmpeg_path()
+
+# --- Utils ---
 def run_cmd_quiet(cmd: List[str]):
     # Print the command so user sees progress; keep stdout/stderr visible to aid debugging
     print(f"[RUNNING] {' '.join(cmd)}")
     subprocess.run(cmd, check=True)
     print(f"[DONE] {' '.join(cmd)}")
 
-# OCR helpers
+# --- OCR helpers ---
 def try_pytesseract(img: Image.Image) -> Optional[Dict]:
     try:
         import pytesseract
@@ -77,7 +105,7 @@ def try_easyocr(img: Image.Image) -> Optional[Dict]:
     combined = " ".join(texts).strip()
     return {"text": combined, "conf": float(sum(confs) / len(confs)) if confs else 0.0}
 
-# Text cleaning and similarity
+# --- Text cleaning and similarity ---
 TIMESTAMP_BRACKET_RE = re.compile(r"\[[^\]]*\]|\([0-9]{1,2}:[0-9]{2}(?::[0-9]{2})?\)")
 PARENTHETICAL_NOISE_RE = re.compile(
     r"\(\s*(?:cheer|cheers|applause|laughter|music|inaudible|audience|crowd|aud|applau|clapping)\b[^\)]*\)",
@@ -126,9 +154,9 @@ def is_allowed_two_letter(tok: str) -> bool:
         return True
     return False
 
-#-------------------------
+# -------------------------
 # Dynamic spell-correction helpers (fast conservative)
-#-------------------------
+# -------------------------
 try:
     from wordfreq import zipf_frequency, top_n_list
     WORDFREQ_OK = True
@@ -240,7 +268,7 @@ def similarity_ratio(a: str, b: str) -> float:
 def similar_enough(a: str, b: str, cutoff: float = 0.85) -> bool:
     return similarity_ratio(a, b) > cutoff
 
-# Clean OCR text
+# --- Clean OCR text ---
 def clean_ocr_text(s: str) -> str:
     if not s:
         return ""
@@ -282,6 +310,7 @@ def clean_ocr_text(s: str) -> str:
     out = " ".join(toks).strip()
     return out.lower()
 
+# --- Data classes ---
 @dataclass
 class FrameResult:
     image: str
@@ -290,11 +319,12 @@ class FrameResult:
     text: str
     conf: float
 
+# --- FFmpeg-powered extractors ---
 def extract_frames_ffmpeg(video_path: Path, out_dir: Path, interval: float = 0.5, scale_h: int = 720):
     out_dir.mkdir(parents=True, exist_ok=True)
     fps = 1.0 / float(interval)
     vf = f"scale=-2:{scale_h},fps={fps}"
-    cmd = [str(FFMPEG_PATH), "-y", "-i", str(video_path), "-vf", vf, str(out_dir / "frame_%05d.jpg")]
+    cmd = [FFMPEG_PATH, "-y", "-i", str(video_path), "-vf", vf, str(out_dir / "frame_%05d.jpg")]
     run_cmd_quiet(cmd)
 
 def process_frames_dir(frames_dir: Path, interval: float, crop: float, min_len: int, engine_order: List[str]) -> List[FrameResult]:
@@ -419,7 +449,7 @@ def finalize_ocr_segments(segments: List[Dict]) -> List[Dict]:
 
 def extract_audio_ffmpeg(video_path: Path, out_wav: Path, target_sr: int = 16000):
     cmd = [
-        str(FFMPEG_PATH), "-y", "-i", str(video_path),
+        FFMPEG_PATH, "-y", "-i", str(video_path),
         "-vn", "-acodec", "pcm_s16le", "-ar", str(target_sr), "-ac", "1",
         str(out_wav)
     ]
@@ -444,9 +474,9 @@ def run_all_preprocessings():
             frames = process_frames_dir(tmp, 0.5, 0.25, 4, ["tesseract", "easyocr"])
             segs = merge_frame_results(frames, sim_cutoff=0.83, merge_gap=0.5)
             segs = finalize_ocr_segments(segs)
-            with open(out_dir / f"{mp4.stem}_captions.json", "w") as f:
+            with open(out_dir / f"{mp4.stem}_captions.json", "w", encoding="utf-8") as f:
                 json.dump({"video": mp4.stem, "segments": segs}, f, ensure_ascii=False, indent=2)
-            with open(out_dir / f"{mp4.stem}_captions_raw.json", "w") as f:
+            with open(out_dir / f"{mp4.stem}_captions_raw.json", "w", encoding="utf-8") as f:
                 raw_frames = [fr.__dict__ for fr in frames]
                 json.dump({"video": mp4.stem, "frames": raw_frames}, f, ensure_ascii=False, indent=2)
             wav_path = out_dir / f"{mp4.stem}.wav"
@@ -482,9 +512,9 @@ def main(argv=None):
             frames = process_frames_dir(tmp, 0.5, 0.25, 4, ["tesseract", "easyocr"])
             segs = merge_frame_results(frames, sim_cutoff=0.83, merge_gap=0.5)
             segs = finalize_ocr_segments(segs)
-            with open(out_dir / f"{video_path.stem}_captions.json", "w") as f:
+            with open(out_dir / f"{video_path.stem}_captions.json", "w", encoding="utf-8") as f:
                 json.dump({"video": video_path.stem, "segments": segs}, f, ensure_ascii=False, indent=2)
-            with open(out_dir / f"{video_path.stem}_captions_raw.json", "w") as f:
+            with open(out_dir / f"{video_path.stem}_captions_raw.json", "w", encoding="utf-8") as f:
                 raw_frames = [fr.__dict__ for fr in frames]
                 json.dump({"video": video_path.stem, "frames": raw_frames}, f, ensure_ascii=False, indent=2)
             wav_path = out_dir / f"{video_path.stem}.wav"

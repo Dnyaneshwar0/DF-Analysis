@@ -4,6 +4,7 @@ import logging
 from flask import Flask, jsonify, send_from_directory  # ✅ added send_from_directory
 from flask_cors import CORS
 
+
 # --- ensure project root (parent of src/) is in sys.path ---
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if PROJECT_ROOT not in sys.path:
@@ -68,6 +69,13 @@ def create_app(preload_models: bool = True):
     @app.route("/health", methods=["GET"])
     def health_check():
         return jsonify({"status": "ok"}), 200
+    
+    #  Serve annotated RAFDB emotion video and waveform/JSON files
+    @app.route("/emotion_media/<path:filename>")
+    def serve_emotion_media(filename):
+        media_dir = os.path.join(PROJECT_ROOT, "data", "emotion", "output")
+        return send_from_directory(media_dir, filename)
+
 
     # Configure logger for startup messages
     logger = logging.getLogger(__name__)

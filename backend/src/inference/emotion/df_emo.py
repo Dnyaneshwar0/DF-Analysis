@@ -137,13 +137,6 @@ def run_goemotions(captions_json: Path):
 
 
 def merge_all(stem: str, raf_summary: Path, goem: dict, ravdess: tuple[Path, Path]):
-    """
-    Combine all JSON content into one and delete extras.
-
-    EXCLUDES:
-      - goemotions.annotated
-      - ravdess.top3_timeseries
-    """
     print(f"[STEP] Merging outputs into {stem}_multimodel_summary.json")
     merged = {
         "file": f"{stem}.mp4",
@@ -154,9 +147,50 @@ def merge_all(stem: str, raf_summary: Path, goem: dict, ravdess: tuple[Path, Pat
         }
     }
 
-    # RAF summary (unchanged)
-    merged["models"]["rafdb"] = json.loads(raf_summary.read_text())
+    # RAF summary + annotated video URL
+    raf_data = json.loads(raf_summary.read_text())
+    raf_data["annotated_video_url"] = f"/emotion_media/out_{stem}.mp4"
+    merged["models"]["rafdb"] = raf_data
 
+    # GoEmotions
+    ge_summary = Path(goem["summary_json"])
+    ge_line = Path(goem["linegraph_json"])
+    ge_table = Path(goem["tabledata_json"])
+    merged["models"]["goemotions"] = {
+        "summary": json.loads(ge_summary.read_text()),
+        "linegraph": json.loads(ge_line.read_text()),
+        "tabledata": json.loads(ge_table.read_text()),
+    }
+
+    # RAVDESS
+    results, waveform = ravdess
+    merged["models"]["ravdess"] = {
+        "results": json.loads(results.read_text()),
+        "waveform": json.loads(waveform.read_text()),
+    }
+
+    out_json = OUT_DIR / f"{stem}_multimodel_summary.json"
+    out_json.write_text(json.dumps(merged, indent=2))
+    print(f"[OK] Wrote merged summary: {out_json.name}")
+
+    keep = {str(out_json), str(OUT_DIR / f"out_{stem}.mp4")}
+    for f in OUT_DIR.glob(f"*{stem}*.json"):
+        if str(f) not in keep:
+            try:
+                f.unlink()
+                print(f"[CLEAN] Deleted {f.name}")
+            except Exception as e:
+                print(f"[WARN] Could not delete {f.name}: {e}")
+
+    return out_json
+
+    
+    # RAF summary + expose annotated video URL for frontend
+    raf_data = json.loads(raf_summary.read_text())
+    raf_data["annotated_video_url"] = f"/emotion_media/out_{stem}.mp4"
+    merged["models"]["rafdb"] = raf_data
+
+    
     # GoEmotions: include only summary, linegraph, tabledata (no annotated)
     ge_summary = Path(goem["summary_json"])
     ge_line = Path(goem["linegraph_json"])

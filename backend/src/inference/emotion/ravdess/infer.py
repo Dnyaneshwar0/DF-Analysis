@@ -1,26 +1,25 @@
 #!/usr/bin/env python3
 """
-RAVDESS inference (model-only) with JSON waveform + TOP-3 emotion timeseries output.
-(No images generated.)
+RAVDESS inference (compact, UI-ready output)
 
-Produces:
-  - <name>_ravdess_results.json            (emotion predictions)
-  - <name>_waveform.json                   (time + normalized amplitude envelope)
-  - <name>_top3_emotions_timeseries.json   (time + top 3 emotion intensities)
-
-Usage:
-  python -m src.inference.emotion.ravdess.infer path/to/<name>_mel.npy
+Outputs:
+  - <stem>_ravdess_results.json
+  - <stem>_waveform.npy              (full-resolution amplitude envelope, binary)
+  - <stem>_waveform.json             (adaptive downsampled envelope for UI)
 """
+
 from __future__ import annotations
 import sys
 import json
 from pathlib import Path
+from typing import List
+
 import numpy as np
 import torch
 import torch.nn.functional as F
 
 # -------------------------------------------------------------------------
-# Resolve repo paths
+# Repo paths
 # -------------------------------------------------------------------------
 REPO_ROOT = Path(__file__).resolve().parents[4]
 MODEL_DIR = REPO_ROOT / "models" / "emotion" / "ravdess"
@@ -28,158 +27,119 @@ MODEL_PATH = MODEL_DIR / "simple_audio_cnn_aug2_state_dict.pt"
 OUT_DIR = REPO_ROOT / "data" / "emotion" / "output"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
-# make local model module importable
+# Make local model importable
 sys.path.append(str(MODEL_DIR))
-from simple_audio_cnn import SimpleAudioCNN  # local model definition
+from simple_audio_cnn import SimpleAudioCNN  # noqa
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# ---- Load model ----
-model = SimpleAudioCNN(num_classes=8).to(device)
-if not MODEL_PATH.exists():
-    raise FileNotFoundError(f"Model not found at {MODEL_PATH}")
-state_dict = torch.load(MODEL_PATH, map_location=device)
-model.load_state_dict(state_dict)
-model.eval()
-
-# ---- Emotion labels ----
 LABELS = ["neutral", "calm", "happy", "sad", "angry", "fearful", "disgust", "surprised"]
 
-# ---- Constants ----
 SR = 16000
 HOP_LENGTH = 512
 SMOOTH_SEC = 0.06
 
+
 # -------------------------------------------------------------------------
-# Inference helpers
+# Model Load
 # -------------------------------------------------------------------------
-def load_mel_from_npy(npy_path: Path):
-    arr = np.load(npy_path)
+model = SimpleAudioCNN(num_classes=len(LABELS)).to(device)
+if not MODEL_PATH.exists():
+    raise FileNotFoundError(f"Model not found: {MODEL_PATH}")
+state_dict = torch.load(MODEL_PATH, map_location=device)
+model.load_state_dict(state_dict)
+model.eval()
+
+
+# -------------------------------------------------------------------------
+# Helpers
+# -------------------------------------------------------------------------
+def load_mel(npy: Path) -> torch.Tensor:
+    arr = np.load(npy)
     if arr.ndim == 2:
-        arr = np.expand_dims(arr, 0)
+        arr = arr[None]
     if arr.ndim == 3 and arr.shape[0] != 1:
-        arr = arr[0:1]
-    tensor = torch.from_numpy(arr).unsqueeze(0).float()  # (1,1,n_mels,T)
-    return tensor.to(device, non_blocking=True)
+        arr = arr[:1]
+    return torch.from_numpy(arr)[None].float().to(device)  # (1,1,n_mels,T)
 
 
-def predict_from_mel_tensor(mel_tensor: torch.Tensor):
-    mel_tensor = mel_tensor.to(device)
-    if mel_tensor.ndim == 3:
-        mel_tensor = mel_tensor.unsqueeze(0)
-    if mel_tensor.ndim == 4:
-        inp = mel_tensor
-    elif mel_tensor.ndim == 2:
-        inp = mel_tensor.unsqueeze(0).unsqueeze(0)
-    else:
-        raise ValueError(f"Unexpected mel tensor shape: {mel_tensor.shape}")
+def predict(mel):
     with torch.no_grad():
-        logits = model(inp)
-        probs = F.softmax(logits, dim=1)
-        pred_idx = int(probs.argmax(dim=1).item())
-        return LABELS[pred_idx], probs.squeeze().cpu().numpy()
+        logits = model(mel)
+        probs = F.softmax(logits, dim=1)[0].cpu().numpy()
+    idx = int(np.argmax(probs))
+    return LABELS[idx], probs
+
+
+def amplitude_envelope(mel_np):
+    env = np.mean(np.abs(mel_np), axis=0)
+    mx = float(env.max())
+    if mx > 0:
+        env /= mx
+    return env.astype(np.float32)
+
+
+def smooth(env):
+    win = max(1, int(SMOOTH_SEC * SR / HOP_LENGTH))
+    kernel = np.ones(win, np.float32) / win
+    return np.convolve(env, kernel, mode="same").astype(np.float32)
+
+
+def adaptive_downsample(env: np.ndarray, sr=SR, hop=HOP_LENGTH):
+    """
+    Adaptive: choose number of points based on clip length, clamp range.
+    """
+    n = len(env)
+    export_points = int(np.clip(n / 60, 24, 64))  # *key adaptive rule*
+    idx = np.linspace(0, n - 1, export_points, dtype=int)
+
+    frame_dur = hop / float(sr)
+    times = (idx * frame_dur).tolist()
+    env_ds = env[idx].tolist()
+
+    return export_points, times, env_ds
+
 
 # -------------------------------------------------------------------------
-# Envelope calculation and smoothing
+# Output Writers
 # -------------------------------------------------------------------------
-def amplitude_envelope_from_mel(mel: np.ndarray):
-    """Compute normalized amplitude envelope from mel per frame."""
-    env = np.mean(np.abs(mel), axis=0)
-    if env.max() > 0:
-        env = env / float(env.max())
-    return env
+def write_results(npy, label, probs):
+    out = {
+        "file": str(npy),
+        "predicted_emotion": label,
+        "probabilities": {lbl: float(p) for lbl, p in zip(LABELS, probs)},
+    }
+    p = OUT_DIR / f"{npy.stem}_ravdess_results.json"
+    p.write_text(json.dumps(out, indent=2))
+    print(f"[OK] Saved {p.name}")
 
 
-def smooth_vec(x: np.ndarray, sr: int = SR, hop_length: int = HOP_LENGTH, win_sec: float = SMOOTH_SEC):
-    if win_sec <= 0:
-        return x
-    win_frames = max(1, int(win_sec * sr / hop_length))
-    kernel = np.ones(win_frames, dtype=float) / win_frames
-    return np.convolve(x, kernel, mode="same")
+def write_waveform(env, stem, sr=SR, hop=HOP_LENGTH):
+    # Full binary (optional but kept for future detail use)
+    np.save(OUT_DIR / f"{stem}_waveform.npy", env.astype(np.float32))
 
+    export_num_points, times, env_ds = adaptive_downsample(env, sr, hop)
+    frame_dur = hop / float(sr)
 
-# -------------------------------------------------------------------------
-# JSON exporters
-# -------------------------------------------------------------------------
-def export_waveform_json(mel_np: np.ndarray, out_path: Path, sr: int = SR, hop_length: int = HOP_LENGTH):
-    """Generate JSON containing time + normalized amplitude envelope + axis labels."""
-    env = amplitude_envelope_from_mel(mel_np)
-    env_s = smooth_vec(env)
-    n_frames = len(env_s)
-    frame_dur = hop_length / sr
-    times = (np.arange(n_frames) * frame_dur).tolist()
-    env_list = env_s.tolist()
-
-    data = {
+    payload = {
         "meta": {
             "sr": sr,
-            "hop_length": hop_length,
+            "hop_length": hop,
             "frame_duration": frame_dur,
-            "num_frames": n_frames
+            "original_num_frames": int(len(env)),
+            "export_num_points": int(export_num_points),
         },
-        "axes": {
-            "x_label": "Time (s)",
-            "y_label": "Normalized Amplitude"
-        },
-        "frames": {
-            "time": times,
-            "envelope": env_list
-        }
+        "axes": {"x_label": "Time (s)", "y_label": "Normalized Amplitude"},
+        "frames": {"time": times, "envelope": env_ds},
     }
 
-    out_path.write_text(json.dumps(data, indent=2))
-    print(f"Saved waveform JSON: {out_path}")
+    p = OUT_DIR / f"{stem}_waveform.json"
+    p.write_text(json.dumps(payload, indent=2))
+    print(f"[OK] Saved {p.name}  (adaptive {export_num_points} points)")
 
-
-def export_top3_emotions_timeseries_json(mel_np: np.ndarray, probs_vec: np.ndarray, out_path: Path,
-                                         sr: int = SR, hop_length: int = HOP_LENGTH):
-    """
-    Export top-3 emotion intensities across time (broadcasted from clip-level).
-    Produces:
-    - top3_emotions_timeseries.json
-    """
-    n_frames = mel_np.shape[1]
-    frame_dur = hop_length / sr
-    times = (np.arange(n_frames) * frame_dur).tolist()
-
-    probs_vec = np.asarray(probs_vec).astype(float)
-    top3_idx = np.argsort(-probs_vec)[:3]
-    top3_labels = [LABELS[i] for i in top3_idx]
-    top3_probs = probs_vec[top3_idx]
-
-    # broadcast top3 probabilities across frames
-    intensities = np.tile(top3_probs[np.newaxis, :], (n_frames, 1))
-    intensities_list = intensities.tolist()
-
-    data = {
-        "meta": {
-            "sr": sr,
-            "hop_length": hop_length,
-            "frame_duration": frame_dur,
-            "num_frames": n_frames
-        },
-        "axes": {
-            "x_label": "Time (s)",
-            "y_label": "Intensity (0..1)"
-        },
-        "emotions": top3_labels,
-        "frames": {
-            "time": times,
-            "intensities": intensities_list
-        },
-        "summary": {
-            "predicted_emotion": top3_labels[0],
-            "top3_clip_probs": [
-                {"label": lbl, "prob": float(prob)} for lbl, prob in zip(top3_labels, top3_probs)
-            ]
-        }
-    }
-
-    out_path.write_text(json.dumps(data, indent=2))
-    print(f"Saved top-3 emotions timeseries JSON: {out_path}")
 
 # -------------------------------------------------------------------------
-# CLI
+# Main
 # -------------------------------------------------------------------------
 def main(argv=None):
     if argv is None:
@@ -194,38 +154,22 @@ def main(argv=None):
         if alt.exists():
             inp = alt
         else:
-            raise FileNotFoundError(f"Input file not found: {argv[0]}")
+            raise FileNotFoundError(inp)
 
     if inp.suffix.lower() != ".npy":
-        raise RuntimeError("Expected a .npy mel spectrogram as input.")
+        raise RuntimeError("Expected .npy mel spectrogram")
 
-    mel_tensor = load_mel_from_npy(inp)
-    label, probs = predict_from_mel_tensor(mel_tensor)
+    mel = load_mel(inp)
+    label, probs = predict(mel)
+    write_results(inp, label, probs)
 
-    # Save clip-level emotion prediction
-    out_json = OUT_DIR / f"{inp.stem}_ravdess_results.json"
-    summary = {
-        "file": str(inp),
-        "predicted_emotion": label,
-        "probabilities": {lbl: float(p) for lbl, p in zip(LABELS, probs)}
-    }
-    out_json.write_text(json.dumps(summary, indent=4))
-    print(f"Predicted: {label} — saved: {out_json}")
-
-    # prepare mel for JSON export
-    mel_np = mel_tensor.squeeze().cpu().numpy()
-    if mel_np.ndim == 3:
-        mel_np = mel_np[0]
+    mel_np = mel.squeeze().cpu().numpy()
+    mel_np = mel_np[0] if mel_np.ndim == 3 else mel_np
     if mel_np.ndim != 2:
-        raise RuntimeError(f"Unexpected mel numpy shape: {mel_np.shape}")
+        raise RuntimeError(f"Bad mel shape: {mel_np.shape}")
 
-    # Save waveform JSON
-    wave_json = OUT_DIR / f"{inp.stem}_waveform.json"
-    export_waveform_json(mel_np, wave_json)
-
-    # Save top-3 emotions timeseries JSON
-    emo_json = OUT_DIR / f"{inp.stem}_top3_emotions_timeseries.json"
-    export_top3_emotions_timeseries_json(mel_np, probs, emo_json)
+    env = smooth(amplitude_envelope(mel_np))
+    write_waveform(env, inp.stem)
 
 
 if __name__ == "__main__":
