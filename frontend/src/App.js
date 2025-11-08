@@ -30,65 +30,70 @@ export default function App() {
     // finalize will be shown/handled inside ProcessingPage visually
   });
 
-  const startAnalysis = async () => {
-    if (!uploadedFile) return;
-    setAppState(APP_STATES.PROCESSING);
+const startAnalysis = async () => {
+  if (!uploadedFile) return;
+  setAppState(APP_STATES.PROCESSING);
 
-    // Build initial status: for selected models -> running (or mocked done), else skipped
-    setModelStatus((prev) => ({
-      ...prev,
-      deepfake: analysisOptions.deepfake ? 'running' : 'skipped',
-      emotion: analysisOptions.emotion ? 'done' : 'skipped', // emotion is mocked in your app — mark done immediately if selected
-      reverseEng: analysisOptions.reverseEng ? 'running' : 'skipped',
-      // extract left as-is (done)
-    }));
+  // Build initial status: for selected models -> running (or mocked done), else skipped
+  setModelStatus((prev) => ({
+    ...prev,
+    deepfake: analysisOptions.deepfake ? 'running' : 'skipped',
+    emotion: analysisOptions.emotion ? 'running' : 'skipped', // <-- no longer mocked as 'done'
+    reverseEng: analysisOptions.reverseEng ? 'running' : 'skipped',
+  }));
 
-    const formData = new FormData();
-    formData.append('file', uploadedFile);
+  // helper to run a POST and update status/results as soon as it finishes
+  const runAndUpdate = async (url, statusKey, resultKeyMapper = (json) => json) => {
+    try {
+      // Create fresh FormData for every request to avoid subtle reuse issues
+      const fd = new FormData();
+      fd.append('file', uploadedFile);
 
-    // helper to run a POST and update status/results as soon as it finishes
-    const runAndUpdate = async (url, statusKey, resultKeyMapper = (json) => json) => {
-      try {
-        const res = await fetch(url, { method: 'POST', body: formData });
-        if (!res.ok) {
-          // mark error immediately
-          setModelStatus((prev) => ({ ...prev, [statusKey]: 'error' }));
-          console.error(`${statusKey} response not ok:`, res.status);
-          return null;
-        }
-        const json = await res.json();
-        // success: set done and append result
-        setModelStatus((prev) => ({ ...prev, [statusKey]: 'done' }));
-        setResultData((prev) => ({ ...prev, [statusKey]: resultKeyMapper(json) }));
-        return json;
-      } catch (err) {
+      const res = await fetch(url, { method: 'POST', body: fd });
+      if (!res.ok) {
         setModelStatus((prev) => ({ ...prev, [statusKey]: 'error' }));
-        console.error(`${statusKey} fetch error:`, err);
+        console.error(`${statusKey} response not ok:`, res.status);
         return null;
       }
-    };
+      const json = await res.json();
 
-    // Start only the selected model calls in parallel
-    const promises = [];
-    if (analysisOptions.reverseEng) {
-      promises.push(runAndUpdate('http://localhost:5000/reveng/analyze', 'reverseEng', (j) => j));
-    }
-    if (analysisOptions.deepfake) {
-      // server returns wrapper; keep your existing mapping
-      promises.push(runAndUpdate('http://localhost:5000/detect/analyze', 'deepfake', (j) => j.deepfake ?? j));
-    }
-    // emotion is mocked/disabled — we already marked it 'done' above if selected
-
-    // Wait for started jobs to settle; ProcessingPage will handle finalization UI and navigation
-    try {
-      await Promise.allSettled(promises);
-      // Per-request updates already updated modelStatus/resultData in runAndUpdate
-      // Do NOT change appState here — let ProcessingPage call onComplete -> parent -> navigate to results
-    } catch (e) {
-      // shouldn't normally happen because runAndUpdate catches errors, but keep safe
-      console.error('Unexpected error waiting for analyses:', e);
+      // mark done and store mapped result
+      setModelStatus((prev) => ({ ...prev, [statusKey]: 'done' }));
+      setResultData((prev) => ({ ...(prev || {}), [statusKey]: resultKeyMapper(json) }));
+      return json;
+    } catch (err) {
+      setModelStatus((prev) => ({ ...prev, [statusKey]: 'error' }));
+      console.error(`${statusKey} fetch error:`, err);
+      return null;
     }
   };
+
+  // Start only the selected model calls in parallel
+  const promises = [];
+  if (analysisOptions.reverseEng) {
+    promises.push(runAndUpdate('http://localhost:5000/reveng/analyze', 'reverseEng', (j) => j));
+  }
+  if (analysisOptions.deepfake) {
+    promises.push(
+      runAndUpdate('http://localhost:5000/detect/analyze', 'deepfake', (j) => j.deepfake ?? j)
+    );
+  }
+  if (analysisOptions.emotion) {
+    // server returns {"status":"success","result": <merged_json>}
+    promises.push(
+      runAndUpdate('http://localhost:5000/emotion/analyze', 'emotion', (j) => j.result ?? j)
+    );
+  }
+
+  // Wait for started jobs to settle; ProcessingPage will handle finalization UI and navigation
+  try {
+    await Promise.allSettled(promises);
+    // Per-request updates already updated modelStatus/resultData in runAndUpdate
+    // Do NOT change appState here — let ProcessingPage call onComplete -> parent -> navigate to results
+  } catch (e) {
+    console.error('Unexpected error waiting for analyses:', e);
+  }
+};
 
   const handleProcessingComplete = () => {
     // Called by ProcessingPage after finalize delay / visual completion

@@ -1,6 +1,6 @@
 // src/pages/ProcessingPage.js
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { FaCheckCircle, FaSpinner, FaCircle } from 'react-icons/fa';
+import { FaCheckCircle, FaSpinner, FaCircle, FaTimesCircle } from 'react-icons/fa';
 
 /**
  * ProcessingPage
@@ -80,9 +80,15 @@ export default function ProcessingPage({
   // Count completed steps
   const doneCount = useMemo(() => {
     return STEPS.reduce((acc, s) => (statusFor(s.key) === 'done' ? acc + 1 : acc), 0);
-  }, [STEPS, modelStatus, finalizeState]); // note: statusFor reads modelStatus & finalizeState
+  }, [STEPS, modelStatus, finalizeState]); // statusFor reads modelStatus & finalizeState
 
   const progress = ((doneCount / STEPS.length) * 100).toFixed(1);
+
+  // Create a compact string reflecting statuses of selected models for effect deps
+  const selectedStatusesKey = useMemo(() => selectedModelKeys.map((k) => modelStatus[k] ?? 'pending').join('|'), [
+    selectedModelKeys,
+    modelStatus,
+  ]);
 
   // Start finalize sequence when ALL selected models are finished (or when there are none)
   useEffect(() => {
@@ -120,19 +126,8 @@ export default function ProcessingPage({
         completeTimerRef.current = null;
       }
     };
-    // we intentionally depend on selectedModelKeys and the relevant modelStatus keys
-    // include only the relevant status keys to avoid over-triggering
-  }, [
-    modelStatus.deepfake,
-    modelStatus.reverseEng,
-    modelStatus.emotion,
-    ...selectedModelKeys, // keep static dependency array stable
-    finalizeDelay,
-    completeDelay,
-    onComplete,
-    selectedModelKeys.length,
-    // NOTE: we purposely didn't include finalizeState or doneCount to avoid loops
-  ]);
+    // depend on the compact statuses key so we re-evaluate when any selected status changes
+  }, [selectedStatusesKey, finalizeDelay, completeDelay, onComplete, selectedModelKeys.length]);
 
   // If any selected model transitions back to non-finished while finalize running, reset the sequence
   useEffect(() => {
@@ -153,7 +148,7 @@ export default function ProcessingPage({
       sequenceStartedRef.current = false;
       setFinalizeState('pending');
     }
-  }, [modelStatus.deepfake, modelStatus.reverseEng, modelStatus.emotion]);
+  }, [selectedStatusesKey, selectedModelKeys]);
 
   // Safety: if parent directly sets modelStatus.finalize to done (or error/skipped),
   // honor that by calling onComplete after completeDelay.
@@ -179,7 +174,7 @@ export default function ProcessingPage({
       // show running state
       setFinalizeState('running');
     }
-  }, [modelStatus.finalize]);
+  }, [modelStatus.finalize, completeDelay, onComplete]);
 
   // Clean up timers on unmount
   useEffect(() => {
@@ -211,7 +206,7 @@ export default function ProcessingPage({
           return (
             <li
               key={step.key}
-              className={`flex items-center space-x-4 p-3 rounded-lg border transition-all duration-300 ${
+              className={`flex items-center justify-between space-x-4 p-3 rounded-lg border transition-all duration-300 ${
                 completed
                   ? 'border-green-700 bg-slate-800 text-green-300'
                   : running
@@ -221,11 +216,21 @@ export default function ProcessingPage({
                   : 'border-slate-800 text-slate-500'
               }`}
             >
-              <span className="w-6 h-6 flex items-center justify-center">
-                {completed ? <FaCheckCircle className="text-green-400" /> : running ? <FaSpinner className="animate-spin text-indigo-400" /> : errored ? <FaCircle className="text-rose-500" /> : <FaCircle className="text-slate-600" />}
-              </span>
+              <div className="flex items-center space-x-4">
+                <span className="w-6 h-6 flex items-center justify-center">
+                  {completed ? (
+                    <FaCheckCircle className="text-green-400" />
+                  ) : running ? (
+                    <FaSpinner className="animate-spin text-indigo-400" />
+                  ) : errored ? (
+                    <FaTimesCircle className="text-rose-500" />
+                  ) : (
+                    <FaCircle className="text-slate-600" />
+                  )}
+                </span>
 
-              <span className={`text-sm md:text-base ${running ? 'font-semibold animate-pulse' : ''}`}>{step.label}</span>
+                <span className={`text-sm md:text-base ${running ? 'font-semibold animate-pulse' : ''}`}>{step.label}</span>
+              </div>
             </li>
           );
         })}
