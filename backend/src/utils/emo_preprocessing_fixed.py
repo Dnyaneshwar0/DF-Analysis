@@ -50,6 +50,24 @@ DEFAULT_INPUT_DIR = REPO_ROOT / "data" / "emotion" / "input" / "raw"
 DEFAULT_PROCESSED_DIR = REPO_ROOT / "data" / "emotion" / "input" / "processed"
 DEFAULT_TMP_ROOT = DEFAULT_PROCESSED_DIR / "tmp"
 
+
+# audio check
+def video_has_audio(video_path: Path) -> bool:
+    try:
+        cmd = [
+            "ffprobe",
+            "-v", "error",
+            "-select_streams", "a",
+            "-show_entries", "stream=index",
+            "-of", "csv=p=0",
+            str(video_path)
+        ]
+        res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        return bool(res.stdout.strip())
+    except Exception:
+        # If ffprobe missing, assume audio exists to avoid accidental skipping
+        return True
+
 # --- Cross-platform FFmpeg resolution ---
 def _resolve_ffmpeg_path() -> str:
     """
@@ -479,10 +497,21 @@ def run_all_preprocessings():
             with open(out_dir / f"{mp4.stem}_captions_raw.json", "w", encoding="utf-8") as f:
                 raw_frames = [fr.__dict__ for fr in frames]
                 json.dump({"video": mp4.stem, "frames": raw_frames}, f, ensure_ascii=False, indent=2)
-            wav_path = out_dir / f"{mp4.stem}.wav"
-            extract_audio_ffmpeg(mp4, wav_path)
-            preprocess_ravdess_audio(wav_path, out_dir)
-            wav_path.unlink(missing_ok=True)
+            wav_path = out_dir / f"{video_path.stem}.wav"
+
+            if video_has_audio(video_path):
+                # Normal path
+                extract_audio_ffmpeg(video_path, wav_path)
+                preprocess_ravdess_audio(wav_path, out_dir)
+                wav_path.unlink(missing_ok=True)
+            else:
+                # No audio → create zero-filled mel.npy
+                print("[WARN] No audio detected — creating zero-filled mel.npy")
+
+                import numpy as np
+                zero_mel = np.zeros((64, 100), dtype=np.float32)  # (n_mels, time_frames)
+                np.save(out_dir / f"{video_path.stem}_mel.npy", zero_mel)
+
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
 
@@ -518,9 +547,19 @@ def main(argv=None):
                 raw_frames = [fr.__dict__ for fr in frames]
                 json.dump({"video": video_path.stem, "frames": raw_frames}, f, ensure_ascii=False, indent=2)
             wav_path = out_dir / f"{video_path.stem}.wav"
-            extract_audio_ffmpeg(video_path, wav_path)
-            preprocess_ravdess_audio(wav_path, out_dir)
-            wav_path.unlink(missing_ok=True)
+            if video_has_audio(video_path):
+                # Normal path
+                extract_audio_ffmpeg(video_path, wav_path)
+                preprocess_ravdess_audio(wav_path, out_dir)
+                wav_path.unlink(missing_ok=True)
+            else:
+                # No audio → create zero-filled mel.npy
+                print("[WARN] No audio detected — creating zero-filled mel.npy")
+
+                import numpy as np
+                zero_mel = np.zeros((64, 100), dtype=np.float32)  # (n_mels, time_frames)
+                np.save(out_dir / f"{video_path.stem}_mel.npy", zero_mel)
+
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
         return

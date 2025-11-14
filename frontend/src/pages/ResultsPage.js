@@ -4,29 +4,53 @@ import DeepfakeCard from '../components/DeepfakeCard';
 import EmotionCard from '../components/EmotionCard';
 import ReverseEngCard from '../components/ReverseEngCard';
 
-export default function ResultsPage({ data = {}, analysisOptions = {}, onReset }) {
+/**
+ * Defensive ResultsPage:
+ * - Accepts props safely (handles props.data === null)
+ * - Sanitizes incoming data: converts NaN/Infinity to null, preserves structure
+ * - All subsequent logic uses `dataSafe`
+ */
+export default function ResultsPage(props) {
+  const { data: rawData, analysisOptions = {}, onReset } = props || {};
+
+  // Defensive: ensure we have an object
+  const dataInput = rawData == null ? {} : rawData;
+
+  // Recursively sanitize numbers (NaN/Infinity -> null) and preserve other values.
+  const sanitize = (value) => {
+    if (value == null) return null;
+    if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+    if (Array.isArray(value)) return value.map(sanitize);
+    if (typeof value === 'object') {
+      const out = {};
+      for (const [k, v] of Object.entries(value)) out[k] = sanitize(v);
+      return out;
+    }
+    return value;
+  };
+
+  const dataSafe = sanitize(dataInput);
+
   // Determine overall verdict from available real data (prefer deepfake detection)
   const verdict = (() => {
-    // If deepfake detection is present use that (label/confidence)
-    if (data?.deepfake && (data.deepfake.label || typeof data.deepfake.confidence === 'number')) {
-      const labelRaw = (data.deepfake.label || '').toString().toUpperCase();
+    const df = dataSafe?.deepfake ?? {};
+    if (df && (df.label || typeof df.confidence === 'number')) {
+      const labelRaw = (df.label || '').toString().toUpperCase();
       const label = labelRaw === 'FAKE' ? 'Fake' : labelRaw === 'REAL' ? 'Real' : 'Suspicious';
-      const confidence = typeof data.deepfake.confidence === 'number' ? data.deepfake.confidence : null;
+      const confidence = typeof df.confidence === 'number' ? df.confidence : null;
       const text = confidence != null
         ? `Detected as ${labelRaw} with ${(confidence * 100).toFixed(1)}% confidence.`
         : `Detected as ${labelRaw}.`;
       return { label, text };
     }
 
-    // fallback to an explicit verdict object if present in data
-    if (data?.verdict && (data.verdict.label || data.verdict.text)) {
+    if (dataSafe?.verdict && (dataSafe.verdict.label || dataSafe.verdict.text)) {
       return {
-        label: (data.verdict.label || 'Unknown').toString(),
-        text: data.verdict.text || 'No detailed verdict provided',
+        label: (dataSafe.verdict.label || 'Unknown').toString(),
+        text: dataSafe.verdict.text || 'No detailed verdict provided',
       };
     }
 
-    // ultimate fallback
     return { text: 'No verdict available', label: 'Unknown' };
   })();
 
@@ -35,13 +59,11 @@ export default function ResultsPage({ data = {}, analysisOptions = {}, onReset }
 
   // prefer a tab which is enabled AND has data; otherwise fall back to option order
   const initialTab = (() => {
-    if (analysisOptions.deepfake && data.deepfake) return 'deepfake';
-    if (analysisOptions.emotion && data.emotion) return 'emotion';
-    // Only prefer reverseEng if the system indicates the video is fake
-    if (analysisOptions.reverseEng && isFake && data.reverseEng) return 'reverseEng';
+    if (analysisOptions.deepfake && dataSafe.deepfake) return 'deepfake';
+    if (analysisOptions.emotion && dataSafe.emotion) return 'emotion';
+    if (analysisOptions.reverseEng && isFake && dataSafe.reverseEng) return 'reverseEng';
     if (analysisOptions.deepfake) return 'deepfake';
     if (analysisOptions.emotion) return 'emotion';
-    // If reverseEng is requested but video is not fake, don't select it by default
     if (analysisOptions.reverseEng && isFake) return 'reverseEng';
     return 'deepfake';
   })();
@@ -54,7 +76,7 @@ export default function ResultsPage({ data = {}, analysisOptions = {}, onReset }
     setExporting(true);
     try {
       if (format === 'json') {
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const blob = new Blob([JSON.stringify(dataSafe, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -64,7 +86,6 @@ export default function ResultsPage({ data = {}, analysisOptions = {}, onReset }
         a.remove();
         URL.revokeObjectURL(url);
       } else if (format === 'pdf') {
-        // Placeholder: real implementation would generate a proper report server-side or via a library
         alert('PDF export not implemented in this demo — integrate server/pdf-generator.');
       }
     } finally {
@@ -74,7 +95,7 @@ export default function ResultsPage({ data = {}, analysisOptions = {}, onReset }
 
   const copyJSON = async () => {
     try {
-      await navigator.clipboard.writeText(JSON.stringify(data, null, 2));
+      await navigator.clipboard.writeText(JSON.stringify(dataSafe, null, 2));
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
     } catch (e) {
@@ -83,8 +104,8 @@ export default function ResultsPage({ data = {}, analysisOptions = {}, onReset }
   };
 
   // small summary stats if present (keep existing behaviour)
-  const confidence = data?.summary?.confidence ?? (data?.deepfake?.confidence ?? null);
-  const topEmotion = data?.emotion?.topEmotion;
+  const confidence = dataSafe?.summary?.confidence ?? (dataSafe?.deepfake?.confidence ?? null);
+  const topEmotion = dataSafe?.emotion?.topEmotion;
 
   return (
     <div className="max-w-6xl mx-auto px-4 lg:px-8">
@@ -135,14 +156,14 @@ export default function ResultsPage({ data = {}, analysisOptions = {}, onReset }
                     Top emotion: <span className="font-medium ml-2">{topEmotion}</span>
                   </div>
                 )}
-                {data?.deepfake?.metadata?.duration_sec && (
+                {dataSafe?.deepfake?.metadata?.duration_sec && (
                   <div className="px-3 py-1 rounded-md bg-slate-800 border border-slate-700 text-slate-200">
-                    Duration: <span className="font-medium ml-2">{data.deepfake.metadata.duration_sec}s</span>
+                    Duration: <span className="font-medium ml-2">{dataSafe.deepfake.metadata.duration_sec}s</span>
                   </div>
                 )}
-                {data?.deepfake?.metadata?.frames_analyzed && (
+                {dataSafe?.deepfake?.metadata?.frames_analyzed && (
                   <div className="px-3 py-1 rounded-md bg-slate-800 border border-slate-700 text-slate-200">
-                    Frames analyzed: <span className="font-medium ml-2">{data.deepfake.metadata.frames_analyzed}</span>
+                    Frames analyzed: <span className="font-medium ml-2">{dataSafe.deepfake.metadata.frames_analyzed}</span>
                   </div>
                 )}
               </div>
@@ -205,7 +226,6 @@ export default function ResultsPage({ data = {}, analysisOptions = {}, onReset }
             )}
 
             {analysisOptions.reverseEng && (
-              // Show the tab, but disable selection unless video is fake.
               <button
                 onClick={() => { if (isFake) setActiveTab('reverseEng'); }}
                 aria-disabled={!isFake}
@@ -224,25 +244,23 @@ export default function ResultsPage({ data = {}, analysisOptions = {}, onReset }
         {/* Tab content */}
         <section className="mt-4">
           <div className="bg-slate-900 rounded-lg p-6 border border-slate-800 min-h-[220px]">
-            {/* Keep each card mounted and just hide/show via `hidden` so internal state persists */}
             {analysisOptions.deepfake && (
               <div hidden={activeTab !== 'deepfake'}>
-                <DeepfakeCard data={data.deepfake || {}} />
+                <DeepfakeCard data={dataSafe.deepfake || {}} />
               </div>
             )}
 
             {analysisOptions.emotion && (
               <div hidden={activeTab !== 'emotion'}>
-                <EmotionCard data={data.emotion || {}} />
+                <EmotionCard data={dataSafe.emotion || {}} />
               </div>
             )}
 
             {analysisOptions.reverseEng && (
               <div hidden={activeTab !== 'reverseEng'}>
                 {isFake ? (
-                  <ReverseEngCard data={data.reverseEng || {}} />
+                  <ReverseEngCard data={dataSafe.reverseEng || {}} />
                 ) : (
-                  // Message when reverse engineering is disabled because the video is real
                   <div className="flex flex-col items-center justify-center text-center py-12">
                     <FaExclamationTriangle className="text-yellow-300 mb-3" />
                     <h3 className="text-lg font-semibold text-slate-200">Video is real — no attributes are extracted.</h3>

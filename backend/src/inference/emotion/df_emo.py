@@ -25,6 +25,9 @@ import sys
 from pathlib import Path
 from contextlib import redirect_stdout, redirect_stderr
 import io
+import math
+from numbers import Number
+from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 if str(REPO_ROOT) not in sys.path:
@@ -41,6 +44,26 @@ PREPROCESS_SCRIPT_CANDIDATES = [
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
 
+def _sanitize_for_json(obj: Any) -> Any:
+    """
+    Recursively convert objects to JSON-safe values:
+      - Replace non-finite numbers (NaN, inf, -inf) with None
+      - Convert tuples -> lists
+      - Recurse into dicts/lists/dicts
+      - Leave strings/bools/None/finite-floats alone
+    """
+    if obj is None:
+        return None
+    if isinstance(obj, dict):
+        return {k: _sanitize_for_json(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_sanitize_for_json(v) for v in obj]
+    if isinstance(obj, Number):
+        try:
+            return obj if math.isfinite(obj) else None
+        except Exception:
+            return None
+    return obj
 
 def find_preprocess_script() -> Path:
     for p in PREPROCESS_SCRIPT_CANDIDATES:
@@ -277,9 +300,33 @@ def main(argv=None):
         raise FileNotFoundError(f"Video not found: {video}")
 
     stem = video.stem
-
-    # 1) Preprocess
-    captions_json, mel_npy = run_preprocessing(video)
+    # 1) Preprocess (be tolerant if preprocessing produced captions but not mel)
+    try:
+        captions_json, mel_npy = run_preprocessing(video)
+    except FileNotFoundError as e:
+        msg = str(e)
+        # If captions missing -> fail hard (we rely on captions for goemotions/rafdb text)
+        if "Missing captions" in msg:
+            raise
+        # Missing mel -> create a zero-filled mel.npy and continue
+        if "Missing mel" in msg or "Missing mel:" in msg:
+            print("[WARN] Preprocessing did not produce mel.npy; creating zero-filled mel and continuing.")
+            # best-effort: try to keep captions if present, else set to None
+            captions_json = PROCESSED_DIR / f"{video.stem}_captions.json"
+            if not captions_json.exists():
+                captions_json = None
+            # Create zero mel with a conservative shape (n_mels=64, frames=100)
+            try:
+                import numpy as _np
+            except Exception:
+                raise RuntimeError("numpy required to synthesize zero mel but is not available.")
+            zero_mel = _np.zeros((64, 100), dtype=_np.float32)
+            mel_npy = PROCESSED_DIR / f"{video.stem}_mel.npy"
+            _np.save(mel_npy, zero_mel)
+            print(f"[OK] Wrote synthetic mel: {mel_npy}")
+        else:
+            # Unknown FileNotFoundError reason: re-raise
+            raise
 
     # 2) RAVDESS (returns only results + waveform)
     ravdess_results, ravdess_wave = run_ravdess(mel_npy)
@@ -290,8 +337,19 @@ def main(argv=None):
     # 4) GoEmotions
     goem = run_goemotions(captions_json)
 
-    # 5) Merge (exclude annotated + top3) and cleanup
+    # 5) Merge (exclude annotated + top3) and cleanup — sanitize before writing
     merged_json = merge_all(stem, raf_summary, goem, (ravdess_results, ravdess_wave))
+
+    # sanitize merged JSON file content (in case any model returned NaN/Inf)
+    out_text_path = merged_json
+    try:
+        raw = json.loads(out_text_path.read_text())
+        safe = _sanitize_for_json(raw)
+        out_text_path.write_text(json.dumps(safe, indent=2))
+        print(f"[OK] Sanitized merged JSON (non-finite numbers -> null): {out_text_path.name}")
+    except Exception as e:
+        # If something goes wrong during sanitize, log and continue (don't break pipeline)
+        print(f"[WARN] Sanitization of merged JSON failed: {e}")
 
     # 6) Pretty-print a compact result block
     # pretty_print_result(merged_json)# Load the merged JSON content into a Python dict
