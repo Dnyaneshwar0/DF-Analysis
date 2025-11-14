@@ -5,21 +5,6 @@ import EmotionCard from '../components/EmotionCard';
 import ReverseEngCard from '../components/ReverseEngCard';
 
 export default function ResultsPage({ data = {}, analysisOptions = {}, onReset }) {
-  // prefer a tab which is enabled AND has data; otherwise fall back to option order
-  const initialTab = (() => {
-    if (analysisOptions.deepfake && data.deepfake) return 'deepfake';
-    if (analysisOptions.emotion && data.emotion) return 'emotion';
-    if (analysisOptions.reverseEng && data.reverseEng) return 'reverseEng';
-    if (analysisOptions.deepfake) return 'deepfake';
-    if (analysisOptions.emotion) return 'emotion';
-    if (analysisOptions.reverseEng) return 'reverseEng';
-    return 'deepfake';
-  })();
-
-  const [activeTab, setActiveTab] = useState(initialTab);
-  const [exporting, setExporting] = useState(false);
-  const [copied, setCopied] = useState(false);
-
   // Determine overall verdict from available real data (prefer deepfake detection)
   const verdict = (() => {
     // If deepfake detection is present use that (label/confidence)
@@ -36,7 +21,7 @@ export default function ResultsPage({ data = {}, analysisOptions = {}, onReset }
     // fallback to an explicit verdict object if present in data
     if (data?.verdict && (data.verdict.label || data.verdict.text)) {
       return {
-        label: data.verdict.label || 'Unknown',
+        label: (data.verdict.label || 'Unknown').toString(),
         text: data.verdict.text || 'No detailed verdict provided',
       };
     }
@@ -45,7 +30,25 @@ export default function ResultsPage({ data = {}, analysisOptions = {}, onReset }
     return { text: 'No verdict available', label: 'Unknown' };
   })();
 
-  const verdictLabel = (verdict.label || '').toLowerCase();
+  const verdictLabel = (verdict.label || '').toString().toLowerCase();
+  const isFake = verdictLabel === 'fake';
+
+  // prefer a tab which is enabled AND has data; otherwise fall back to option order
+  const initialTab = (() => {
+    if (analysisOptions.deepfake && data.deepfake) return 'deepfake';
+    if (analysisOptions.emotion && data.emotion) return 'emotion';
+    // Only prefer reverseEng if the system indicates the video is fake
+    if (analysisOptions.reverseEng && isFake && data.reverseEng) return 'reverseEng';
+    if (analysisOptions.deepfake) return 'deepfake';
+    if (analysisOptions.emotion) return 'emotion';
+    // If reverseEng is requested but video is not fake, don't select it by default
+    if (analysisOptions.reverseEng && isFake) return 'reverseEng';
+    return 'deepfake';
+  })();
+
+  const [activeTab, setActiveTab] = useState(initialTab);
+  const [exporting, setExporting] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const doExport = (format = 'json') => {
     setExporting(true);
@@ -202,11 +205,14 @@ export default function ResultsPage({ data = {}, analysisOptions = {}, onReset }
             )}
 
             {analysisOptions.reverseEng && (
+              // Show the tab, but disable selection unless video is fake.
               <button
-                onClick={() => setActiveTab('reverseEng')}
+                onClick={() => { if (isFake) setActiveTab('reverseEng'); }}
+                aria-disabled={!isFake}
+                title={!isFake ? 'Reverse engineering only runs on videos detected as fake' : 'Reverse engineering results'}
                 className={`relative py-2 px-4 rounded-t-md font-semibold transition ${
-                  activeTab === 'reverseEng' ? 'text-white' : 'text-slate-400 hover:text-white'
-                }`}
+                  activeTab === 'reverseEng' ? 'text-white' : (isFake ? 'text-slate-400 hover:text-white' : 'text-slate-600/60 cursor-not-allowed')
+                } ${!isFake ? 'opacity-60' : ''}`}
               >
                 Reverse Engineering
                 {activeTab === 'reverseEng' && <span className="absolute left-2 right-2 -bottom-[1px] h-1 rounded-t-lg bg-indigo-500" />}
@@ -233,7 +239,18 @@ export default function ResultsPage({ data = {}, analysisOptions = {}, onReset }
 
             {analysisOptions.reverseEng && (
               <div hidden={activeTab !== 'reverseEng'}>
-                <ReverseEngCard data={data.reverseEng || {}} />
+                {isFake ? (
+                  <ReverseEngCard data={data.reverseEng || {}} />
+                ) : (
+                  // Message when reverse engineering is disabled because the video is real
+                  <div className="flex flex-col items-center justify-center text-center py-12">
+                    <FaExclamationTriangle className="text-yellow-300 mb-3" />
+                    <h3 className="text-lg font-semibold text-slate-200">Video is real — no attributes are extracted.</h3>
+                    <p className="mt-2 text-sm text-slate-400 max-w-lg">
+                      Reverse engineering is only performed when a video is classified as fake. If you believe this video is mislabeled, check the Deepfake tab for raw detection details and confidence scores.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </div>
